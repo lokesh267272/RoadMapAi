@@ -20,7 +20,12 @@ serve(async (req) => {
     console.log(`Received request to generate roadmap for: ${goal} with duration: ${duration} days`);
 
     if (!goal) {
-      throw new Error('Missing required parameters: goal');
+      throw new Error('Missing required parameter: goal');
+    }
+
+    if (!GEMINI_API_KEY) {
+      console.error("GEMINI_API_KEY is not configured");
+      throw new Error('API configuration error - please contact administrator');
     }
 
     const prompt = `
@@ -49,11 +54,12 @@ serve(async (req) => {
       The roadmap should be comprehensive, practical, and follow a logical progression.
     `;
 
+    console.log("Sending request to Gemini API...");
     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-goog-api-key": GEMINI_API_KEY || '',
+        "x-goog-api-key": GEMINI_API_KEY,
       },
       body: JSON.stringify({
         contents: [
@@ -73,6 +79,12 @@ serve(async (req) => {
         },
       }),
     });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error(`Gemini API error (${response.status}):`, errorData);
+      throw new Error(`API error: ${response.status} - ${response.statusText}`);
+    }
 
     const data = await response.json();
     console.log("Received response from Gemini API");

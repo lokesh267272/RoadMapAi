@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { Brain, Calendar, Loader2, Sparkles } from "lucide-react";
+import { AlertCircle, Brain, Calendar, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Progress } from "@/components/ui/progress";
@@ -19,12 +19,14 @@ const RoadmapGenerator = () => {
   const [duration, setDuration] = useState([30]);
   const [isLoading, setIsLoading] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
-  const [isAIGenerated, setIsAIGenerated] = useState(false);
+  const [isAIGenerated, setIsAIGenerated] = useState(true); // Default to AI generation
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     
     if (!learningGoal.trim()) {
       toast.error("Please enter a learning goal");
@@ -44,15 +46,24 @@ const RoadmapGenerator = () => {
       if (isAIGenerated) {
         // Use AI to generate roadmap
         setGenerationProgress(30);
+        console.log("Calling generate-roadmap function with:", { goal: learningGoal, duration: duration[0] });
         
         // Call the Supabase Edge Function to generate roadmap
         const { data: aiData, error: aiFunctionError } = await supabase.functions.invoke('generate-roadmap', {
           body: { goal: learningGoal, duration: duration[0] }
         });
         
-        if (aiFunctionError) throw new Error(aiFunctionError.message);
-        if (!aiData || !aiData.roadmap) throw new Error("Failed to generate roadmap data");
+        if (aiFunctionError) {
+          console.error("AI Function Error:", aiFunctionError);
+          throw new Error(aiFunctionError.message);
+        }
         
+        if (!aiData || !aiData.roadmap) {
+          console.error("Invalid AI response data:", aiData);
+          throw new Error("Failed to generate roadmap data");
+        }
+        
+        console.log("Received AI roadmap data:", aiData);
         setGenerationProgress(70);
         
         // Insert the roadmap into Supabase
@@ -67,9 +78,13 @@ const RoadmapGenerator = () => {
           .select()
           .single();
         
-        if (roadmapError) throw roadmapError;
+        if (roadmapError) {
+          console.error("Roadmap insertion error:", roadmapError);
+          throw roadmapError;
+        }
         
         setGenerationProgress(80);
+        console.log("Created roadmap:", roadmap);
         
         // Generate topics from AI response
         const topics = aiData.roadmap.topics.map((topic: any, index: number) => ({
@@ -80,12 +95,17 @@ const RoadmapGenerator = () => {
           completed: false
         }));
         
+        console.log("Inserting topics:", topics);
+        
         // Insert topics
         const { error: topicsError } = await supabase
           .from('learning_topics')
           .insert(topics);
         
-        if (topicsError) throw topicsError;
+        if (topicsError) {
+          console.error("Topics insertion error:", topicsError);
+          throw topicsError;
+        }
         
         setGenerationProgress(100);
         toast.success("AI-generated roadmap created successfully!");
@@ -135,6 +155,7 @@ const RoadmapGenerator = () => {
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Error creating roadmap:", error);
+      setError(error.message || "Failed to generate roadmap. Please try again.");
       toast.error(error.message || "Failed to generate roadmap. Please try again.");
     } finally {
       setIsLoading(false);
@@ -231,6 +252,13 @@ const RoadmapGenerator = () => {
                 Basic Schedule
               </Button>
             </div>
+
+            {error && (
+              <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3 flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                <div className="text-sm text-destructive">{error}</div>
+              </div>
+            )}
 
             {isLoading && (
               <div className="space-y-2">
