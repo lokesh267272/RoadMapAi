@@ -1,178 +1,166 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar as CalendarIcon, CheckCircle, Clock } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { 
+  Table, 
+  TableHeader, 
+  TableRow, 
+  TableHead, 
+  TableBody, 
+  TableCell 
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { toast } from "sonner";
+import { CheckCircle, CircleDashed } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-// Mock data for the calendar
-const mockEvents = [
-  { date: new Date(2023, 6, 12), title: "JavaScript Basics", completed: true },
-  { date: new Date(2023, 6, 13), title: "Variables & Data Types", completed: true },
-  { date: new Date(2023, 6, 14), title: "Functions & Scope", completed: false },
-  { date: new Date(2023, 6, 15), title: "Arrays & Objects", completed: false },
-  { date: new Date(2023, 6, 18), title: "DOM Manipulation", completed: false },
+// Fix: Add className to the displayMonth type
+interface CalendarDayInfo {
+  displayMonth: Date;
+  className?: string; // Added className property to fix the error
+  date: Date;
+  day: number;
+  isCurrentMonth: boolean;
+  isToday: boolean;
+  isSelected: boolean;
+}
+
+// Sample data for calendar events
+const calendarEvents = [
+  {
+    date: new Date(new Date().getFullYear(), new Date().getMonth(), 15),
+    title: "Introduction to Programming",
+    completed: true
+  },
+  {
+    date: new Date(new Date().getFullYear(), new Date().getMonth(), 16),
+    title: "Variables and Data Types",
+    completed: true
+  },
+  {
+    date: new Date(new Date().getFullYear(), new Date().getMonth(), 17),
+    title: "Control Flow Statements",
+    completed: false
+  },
+  {
+    date: new Date(new Date().getFullYear(), new Date().getMonth(), 18),
+    title: "Functions and Parameters",
+    completed: false
+  }
 ];
 
-// Function to format date to string
-const formatDate = (date: Date): string => {
-  return date.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-};
-
 const CalendarView = () => {
+  const [date, setDate] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [events, setEvents] = useState(mockEvents);
 
-  // Find events for the selected date
-  const selectedEvents = selectedDate
-    ? events.filter(
-        (event) =>
-          event.date.getDate() === selectedDate.getDate() &&
-          event.date.getMonth() === selectedDate.getMonth() &&
-          event.date.getFullYear() === selectedDate.getFullYear()
+  // Get events for the selected date
+  const selectedDateEvents = selectedDate 
+    ? calendarEvents.filter(event => 
+        event.date.getDate() === selectedDate.getDate() && 
+        event.date.getMonth() === selectedDate.getMonth() && 
+        event.date.getFullYear() === selectedDate.getFullYear()
       )
     : [];
 
-  // Function to handle marking an event as completed
-  const handleMarkCompleted = (title: string) => {
-    setEvents(
-      events.map((event) =>
-        event.title === title ? { ...event, completed: true } : event
-      )
-    );
-    toast.success(`"${title}" marked as completed!`);
-  };
-
-  // Function to get date styling for the calendar
-  const getDayClassNames = (day: Date | undefined) => {
-    if (!day) return "";
-
-    const isEventDay = events.some(
-      (event) =>
-        event.date.getDate() === day.getDate() &&
-        event.date.getMonth() === day.getMonth() &&
-        event.date.getFullYear() === day.getFullYear()
+  // Custom day render function to show event indicators
+  const renderDay = (day: CalendarDayInfo) => {
+    // Check if this day has any events
+    const hasEvents = calendarEvents.some(event => 
+      event.date.getDate() === day.date.getDate() && 
+      event.date.getMonth() === day.date.getMonth() && 
+      event.date.getFullYear() === day.date.getFullYear()
     );
 
-    const isCompletedDay = events.some(
-      (event) =>
-        event.date.getDate() === day.getDate() &&
-        event.date.getMonth() === day.getMonth() &&
-        event.date.getFullYear() === day.getFullYear() &&
-        event.completed
-    );
-
-    if (isCompletedDay) {
-      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 font-medium";
+    // Get completion status if events exist
+    let allCompleted = false;
+    if (hasEvents) {
+      const dayEvents = calendarEvents.filter(event => 
+        event.date.getDate() === day.date.getDate() && 
+        event.date.getMonth() === day.date.getMonth() && 
+        event.date.getFullYear() === day.date.getFullYear()
+      );
+      allCompleted = dayEvents.every(event => event.completed);
     }
 
-    if (isEventDay) {
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 font-medium";
-    }
-
-    return "";
+    return (
+      <div className={cn(
+        "relative h-9 w-9 p-0 flex items-center justify-center",
+        hasEvents && "font-semibold",
+        hasEvents && allCompleted && "text-green-600",
+        day.className // This is the className property we added
+      )}>
+        <span>{day.day}</span>
+        {hasEvents && (
+          <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2">
+            <div className={`h-1 w-1 rounded-full ${allCompleted ? 'bg-green-500' : 'bg-primary'}`}></div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
-    <div className="animate-fadeInUp">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div>
-          <Card className="bg-glass shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center text-lg">
-                <CalendarIcon className="mr-2 h-5 w-5 text-primary" />
-                Learning Calendar
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CalendarComponent
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                className="rounded-md border"
-                modifiersClassNames={{
-                  selected: "bg-primary text-primary-foreground",
-                }}
-                components={{
-                  Day: ({ date, ...props }) => {
-                    // Only pass down className if it exists in props
-                    return date ? (
-                      <button
-                        {...props}
-                        className={`${props.className || ''} ${getDayClassNames(date)}`}
-                      />
-                    ) : null;
-                  },
-                }}
-              />
-            </CardContent>
-          </Card>
-        </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fadeInUp">
+      <Card className="bg-glass">
+        <CardHeader>
+          <CardTitle>Learning Calendar</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={setSelectedDate}
+            className="border rounded-md"
+            components={{
+              Day: renderDay
+            }}
+          />
+        </CardContent>
+      </Card>
 
-        <div className="md:col-span-2">
-          <Card className="bg-glass shadow-sm h-full">
-            <CardHeader>
-              <CardTitle className="text-lg">
-                {selectedDate
-                  ? `Topics for ${formatDate(selectedDate)}`
-                  : "Select a date to view topics"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {selectedEvents.length > 0 ? (
-                <div className="space-y-4">
-                  {selectedEvents.map((event, index) => (
-                    <div
-                      key={index}
-                      className="p-4 rounded-lg border bg-background/50 flex justify-between items-center transition-all duration-300 hover:shadow-md"
-                    >
-                      <div className="flex items-center">
-                        {event.completed ? (
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
-                        ) : (
-                          <Clock className="h-5 w-5 text-blue-500 mr-3 flex-shrink-0" />
-                        )}
-                        <div>
-                          <h3 className="font-medium">{event.title}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {event.completed
-                              ? "Completed"
-                              : "Pending completion"}
-                          </p>
-                        </div>
-                      </div>
-                      {!event.completed && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleMarkCompleted(event.title)}
-                        >
-                          Mark Complete
-                        </Button>
+      <Card className="bg-glass">
+        <CardHeader>
+          <CardTitle>
+            {selectedDate ? `Topics for ${selectedDate.toLocaleDateString()}` : 'Select a date to view topics'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {selectedDateEvents.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Topic</TableHead>
+                  <TableHead className="w-[100px]">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {selectedDateEvents.map((event, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{event.title}</TableCell>
+                    <TableCell>
+                      {event.completed ? (
+                        <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-200 flex items-center gap-1">
+                          <CheckCircle className="h-3 w-3" /> Completed
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-200 flex items-center gap-1">
+                          <CircleDashed className="h-3 w-3" /> Pending
+                        </Badge>
                       )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center p-8">
-                  <CalendarIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                  <h3 className="text-lg font-medium mb-2">
-                    No topics scheduled for this day
-                  </h3>
-                  <p className="text-muted-foreground">
-                    Select another date or create a new learning roadmap
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground">
+              {selectedDate 
+                ? "No learning topics scheduled for this date" 
+                : "Select a date to see your learning topics"}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

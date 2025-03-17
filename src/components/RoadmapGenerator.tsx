@@ -8,15 +8,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { Brain, Calendar, Loader2 } from "lucide-react";
+import { Brain, Calendar, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { Progress } from "@/components/ui/progress";
 
 const RoadmapGenerator = () => {
   const [learningGoal, setLearningGoal] = useState("");
   const [description, setDescription] = useState("");
   const [duration, setDuration] = useState([30]);
   const [isLoading, setIsLoading] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [isAIGenerated, setIsAIGenerated] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -35,41 +38,99 @@ const RoadmapGenerator = () => {
     }
     
     setIsLoading(true);
+    setGenerationProgress(10);
     
     try {
-      // Insert the roadmap into Supabase
-      const { data: roadmap, error: roadmapError } = await supabase
-        .from('learning_roadmaps')
-        .insert({
-          user_id: user.id,
-          title: learningGoal,
-          description: description,
-          duration_days: duration[0]
-        })
-        .select()
-        .single();
-      
-      if (roadmapError) throw roadmapError;
-      
-      // Generate simple topics based on the duration
-      const topics = [];
-      for (let i = 1; i <= duration[0]; i++) {
-        topics.push({
-          roadmap_id: roadmap.id,
-          title: `Day ${i}: ${learningGoal} - Part ${i}`,
-          day_number: i,
-          completed: false
+      if (isAIGenerated) {
+        // Use AI to generate roadmap
+        setGenerationProgress(30);
+        
+        // Call the Supabase Edge Function to generate roadmap
+        const { data: aiData, error: aiFunctionError } = await supabase.functions.invoke('generate-roadmap', {
+          body: { goal: learningGoal, duration: duration[0] }
         });
+        
+        if (aiFunctionError) throw new Error(aiFunctionError.message);
+        if (!aiData || !aiData.roadmap) throw new Error("Failed to generate roadmap data");
+        
+        setGenerationProgress(70);
+        
+        // Insert the roadmap into Supabase
+        const { data: roadmap, error: roadmapError } = await supabase
+          .from('learning_roadmaps')
+          .insert({
+            user_id: user.id,
+            title: aiData.roadmap.title || learningGoal,
+            description: description,
+            duration_days: duration[0]
+          })
+          .select()
+          .single();
+        
+        if (roadmapError) throw roadmapError;
+        
+        setGenerationProgress(80);
+        
+        // Generate topics from AI response
+        const topics = aiData.roadmap.topics.map((topic: any, index: number) => ({
+          roadmap_id: roadmap.id,
+          title: topic.topic,
+          description: topic.content,
+          day_number: topic.day || index + 1,
+          completed: false
+        }));
+        
+        // Insert topics
+        const { error: topicsError } = await supabase
+          .from('learning_topics')
+          .insert(topics);
+        
+        if (topicsError) throw topicsError;
+        
+        setGenerationProgress(100);
+        toast.success("AI-generated roadmap created successfully!");
+      } else {
+        // Generate simple topics based on the duration
+        setGenerationProgress(50);
+        
+        // Insert the roadmap into Supabase
+        const { data: roadmap, error: roadmapError } = await supabase
+          .from('learning_roadmaps')
+          .insert({
+            user_id: user.id,
+            title: learningGoal,
+            description: description,
+            duration_days: duration[0]
+          })
+          .select()
+          .single();
+        
+        if (roadmapError) throw roadmapError;
+        
+        setGenerationProgress(80);
+        
+        // Generate simple topics based on the duration
+        const topics = [];
+        for (let i = 1; i <= duration[0]; i++) {
+          topics.push({
+            roadmap_id: roadmap.id,
+            title: `Day ${i}: ${learningGoal} - Part ${i}`,
+            day_number: i,
+            completed: false
+          });
+        }
+        
+        // Insert topics
+        const { error: topicsError } = await supabase
+          .from('learning_topics')
+          .insert(topics);
+        
+        if (topicsError) throw topicsError;
+        
+        setGenerationProgress(100);
+        toast.success("Roadmap generated successfully!");
       }
       
-      // Insert topics
-      const { error: topicsError } = await supabase
-        .from('learning_topics')
-        .insert(topics);
-      
-      if (topicsError) throw topicsError;
-      
-      toast.success("Roadmap generated successfully!");
       // Redirect to dashboard
       navigate("/dashboard");
     } catch (error: any) {
@@ -77,6 +138,7 @@ const RoadmapGenerator = () => {
       toast.error(error.message || "Failed to generate roadmap. Please try again.");
     } finally {
       setIsLoading(false);
+      setGenerationProgress(0);
     }
   };
 
@@ -149,6 +211,37 @@ const RoadmapGenerator = () => {
               </div>
             </div>
 
+            <div className="flex items-center space-x-2">
+              <Button
+                type="button"
+                variant={isAIGenerated ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setIsAIGenerated(true)}
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Use AI Generation
+              </Button>
+              <Button
+                type="button"
+                variant={!isAIGenerated ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setIsAIGenerated(false)}
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                Basic Schedule
+              </Button>
+            </div>
+
+            {isLoading && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Generating your roadmap...</span>
+                  <span>{generationProgress}%</span>
+                </div>
+                <Progress value={generationProgress} />
+              </div>
+            )}
+
             <Button
               type="submit"
               className="w-full"
@@ -157,12 +250,21 @@ const RoadmapGenerator = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating Roadmap...
+                  {isAIGenerated ? "AI is creating your roadmap..." : "Generating Roadmap..."}
                 </>
               ) : (
                 <>
-                  <Brain className="mr-2 h-4 w-4" />
-                  Generate Learning Roadmap
+                  {isAIGenerated ? (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Generate AI Learning Roadmap
+                    </>
+                  ) : (
+                    <>
+                      <Brain className="mr-2 h-4 w-4" />
+                      Generate Basic Roadmap
+                    </>
+                  )}
                 </>
               )}
             </Button>
