@@ -100,12 +100,15 @@ const CalendarView = () => {
                   selected: "bg-primary text-primary-foreground",
                 }}
                 components={{
-                  Day: ({ date, ...props }) => (
-                    <button
-                      {...props}
-                      className={`${props.className} ${getDayClassNames(date)}`}
-                    />
-                  ),
+                  Day: ({ date, ...props }) => {
+                    // Only pass down className if it exists in props
+                    return date ? (
+                      <button
+                        {...props}
+                        className={`${props.className || ''} ${getDayClassNames(date)}`}
+                      />
+                    ) : null;
+                  },
                 }}
               />
             </CardContent>
