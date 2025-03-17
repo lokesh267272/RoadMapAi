@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Brain, ArrowRight, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 type AuthMode = "signin" | "signup";
 
@@ -34,15 +35,33 @@ const AuthForm = () => {
     setIsLoading(true);
 
     try {
-      // This is a placeholder for the actual Supabase authentication
-      // Once Supabase is connected, this will be replaced with real auth code
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Simulate successful login
-      toast.success(mode === "signin" ? "Signed in successfully!" : "Account created successfully!");
-      navigate("/dashboard");
-    } catch (error) {
-      toast.error("Authentication failed. Please try again.");
+      if (mode === "signup") {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: name,
+            },
+          },
+        });
+
+        if (error) throw error;
+
+        toast.success("Account created successfully! Please check your email to confirm your registration.");
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+
+        toast.success("Signed in successfully!");
+        navigate("/dashboard");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Authentication failed. Please try again.");
     } finally {
       setIsLoading(false);
     }

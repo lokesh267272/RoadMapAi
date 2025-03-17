@@ -1,41 +1,123 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Calendar, CheckCircle, Clock, Plus, Target } from "lucide-react";
+import { Calendar, CheckCircle, Clock, Plus, Target, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import RoadmapGenerator from "./RoadmapGenerator";
 import CalendarView from "./Calendar";
 import ProgressTracker from "./ProgressTracker";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
-// Mock data
-const mockRoadmaps = [
-  {
-    id: "1",
-    title: "Learn JavaScript in 30 Days",
-    progress: 75,
-    nextTopic: "Asynchronous JavaScript",
-    totalTopics: 30,
-    completedTopics: 22,
-  },
-  {
-    id: "2",
-    title: "Master React in 60 Days",
-    progress: 45,
-    nextTopic: "React Hooks",
-    totalTopics: 60,
-    completedTopics: 27,
-  },
-];
+interface Roadmap {
+  id: string;
+  title: string;
+  duration_days: number;
+  created_at: string;
+}
+
+interface Topic {
+  id: string;
+  title: string;
+  completed: boolean;
+  day_number: number;
+}
 
 const DashboardComponent = () => {
   const [isCreatingRoadmap, setIsCreatingRoadmap] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);
+  const [topics, setTopics] = useState<Record<string, Topic[]>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const { user, isLoading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (authLoading) return;
+    
+    if (!user) {
+      toast.error("Please sign in to view your dashboard");
+      navigate("/auth");
+      return;
+    }
+
+    const fetchRoadmaps = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('learning_roadmaps')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        setRoadmaps(data || []);
+        
+        // Fetch topics for each roadmap
+        if (data && data.length > 0) {
+          const topicsData: Record<string, Topic[]> = {};
+          
+          for (const roadmap of data) {
+            const { data: roadmapTopics, error: topicsError } = await supabase
+              .from('learning_topics')
+              .select('*')
+              .eq('roadmap_id', roadmap.id)
+              .order('day_number', { ascending: true });
+            
+            if (topicsError) throw topicsError;
+            
+            topicsData[roadmap.id] = roadmapTopics || [];
+          }
+          
+          setTopics(topicsData);
+        }
+      } catch (error: any) {
+        console.error("Error fetching roadmaps:", error);
+        toast.error("Failed to load your roadmaps");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchRoadmaps();
+  }, [user, authLoading, navigate]);
 
   const handleCreateRoadmap = () => {
     setIsCreatingRoadmap(true);
     setActiveTab("create");
   };
+
+  const calculateProgress = (roadmapId: string) => {
+    const roadmapTopics = topics[roadmapId] || [];
+    if (roadmapTopics.length === 0) return 0;
+    
+    const completedTopics = roadmapTopics.filter(topic => topic.completed).length;
+    return Math.round((completedTopics / roadmapTopics.length) * 100);
+  };
+
+  const getNextTopic = (roadmapId: string) => {
+    const roadmapTopics = topics[roadmapId] || [];
+    const nextTopic = roadmapTopics.find(topic => !topic.completed);
+    return nextTopic?.title || "All topics completed!";
+  };
+
+  const getTotalCompletedTopics = () => {
+    let total = 0;
+    Object.values(topics).forEach(roadmapTopics => {
+      total += roadmapTopics.filter(topic => topic.completed).length;
+    });
+    return total;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 animate-fadeInUp">
@@ -72,7 +154,7 @@ const DashboardComponent = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{mockRoadmaps.length}</div>
+                <div className="text-2xl font-bold">{roadmaps.length}</div>
               </CardContent>
             </Card>
             
@@ -85,7 +167,7 @@ const DashboardComponent = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {mockRoadmaps.reduce((acc, roadmap) => acc + roadmap.completedTopics, 0)}
+                  {getTotalCompletedTopics()}
                 </div>
               </CardContent>
             </Card>
@@ -105,26 +187,26 @@ const DashboardComponent = () => {
 
           <h2 className="text-xl font-semibold mt-8 mb-4">Your Roadmaps</h2>
           
-          {mockRoadmaps.length > 0 ? (
+          {roadmaps.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {mockRoadmaps.map((roadmap) => (
+              {roadmaps.map((roadmap) => (
                 <Card key={roadmap.id} className="bg-glass overflow-hidden card-hover">
                   <CardContent className="p-6">
                     <h3 className="text-xl font-semibold mb-2">{roadmap.title}</h3>
                     <div className="flex items-center text-muted-foreground mb-4">
                       <Calendar className="h-4 w-4 mr-2" />
-                      <span>Next: {roadmap.nextTopic}</span>
+                      <span>Next: {getNextTopic(roadmap.id)}</span>
                     </div>
                     
                     <div className="mb-2 flex justify-between text-sm">
                       <span>Progress</span>
-                      <span className="font-medium">{roadmap.progress}%</span>
+                      <span className="font-medium">{calculateProgress(roadmap.id)}%</span>
                     </div>
                     
                     <div className="w-full bg-muted rounded-full h-2 mb-4">
                       <div
                         className="bg-primary rounded-full h-2 transition-all duration-500"
-                        style={{ width: `${roadmap.progress}%` }}
+                        style={{ width: `${calculateProgress(roadmap.id)}%` }}
                       ></div>
                     </div>
                     
