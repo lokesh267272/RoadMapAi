@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Calendar, CheckCircle, Clock, Plus, Target } from "lucide-react";
 import RoadmapGenerator from "./RoadmapGenerator";
-import Calendar from "./Calendar";
+import CalendarView from "./Calendar";
 import ProgressTracker from "./ProgressTracker";
 
 // Mock data
@@ -154,7 +154,7 @@ const DashboardComponent = () => {
         </TabsContent>
 
         <TabsContent value="calendar">
-          <Calendar />
+          <CalendarView />
         </TabsContent>
 
         <TabsContent value="progress">

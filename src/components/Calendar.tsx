@@ -25,7 +25,7 @@ const formatDate = (date: Date): string => {
   });
 };
 
-const Calendar = () => {
+const CalendarView = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [events, setEvents] = useState(mockEvents);
 
@@ -174,4 +174,4 @@ const Calendar = () => {
   );
 };
 
-export default Calendar;
+export default CalendarView;
