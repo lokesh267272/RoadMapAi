@@ -32,6 +32,7 @@ const DashboardComponent = () => {
   const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);
   const [topics, setTopics] = useState<Record<string, Topic[]>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedRoadmap, setSelectedRoadmap] = useState<string | null>(null);
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
 
@@ -109,6 +110,28 @@ const DashboardComponent = () => {
       total += roadmapTopics.filter(topic => topic.completed).length;
     });
     return total;
+  };
+
+  const handleViewDetails = (roadmapId: string) => {
+    setSelectedRoadmap(roadmapId);
+    setActiveTab("progress");
+  };
+
+  const handleContinueLearning = (roadmapId: string) => {
+    // Find the first incomplete topic
+    const roadmapTopics = topics[roadmapId] || [];
+    const nextTopic = roadmapTopics.find(topic => !topic.completed);
+    
+    if (nextTopic) {
+      // Mark the topic as viewed or show a detail view
+      setSelectedRoadmap(roadmapId);
+      setActiveTab("progress");
+      
+      // Notify the user about the next topic
+      toast.info(`Next topic: ${nextTopic.title}`);
+    } else {
+      toast.success("Congratulations! You've completed all topics in this roadmap.");
+    }
   };
 
   if (isLoading) {
@@ -211,10 +234,17 @@ const DashboardComponent = () => {
                     </div>
                     
                     <div className="flex justify-between mt-4">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleViewDetails(roadmap.id)}
+                      >
                         View Details
                       </Button>
-                      <Button size="sm">
+                      <Button 
+                        size="sm"
+                        onClick={() => handleContinueLearning(roadmap.id)}
+                      >
                         Continue Learning
                       </Button>
                     </div>
@@ -236,11 +266,11 @@ const DashboardComponent = () => {
         </TabsContent>
 
         <TabsContent value="calendar">
-          <CalendarView />
+          <CalendarView selectedRoadmapId={selectedRoadmap} topics={topics} />
         </TabsContent>
 
         <TabsContent value="progress">
-          <ProgressTracker />
+          <ProgressTracker selectedRoadmapId={selectedRoadmap} />
         </TabsContent>
 
         <TabsContent value="create">

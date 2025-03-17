@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { 
@@ -11,13 +10,15 @@ import {
   TableCell 
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, CircleDashed } from "lucide-react";
+import { CheckCircle, CircleDashed, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { format, isSameDay } from "date-fns";
+import { toast } from "sonner";
 
-// Fix: Add className to the displayMonth type
 interface CalendarDayInfo {
   displayMonth: Date;
-  className?: string; // Added className property to fix the error
+  className?: string;
   date: Date;
   day: number;
   isCurrentMonth: boolean;
@@ -25,59 +26,121 @@ interface CalendarDayInfo {
   isSelected: boolean;
 }
 
-// Sample data for calendar events
-const calendarEvents = [
-  {
-    date: new Date(new Date().getFullYear(), new Date().getMonth(), 15),
-    title: "Introduction to Programming",
-    completed: true
-  },
-  {
-    date: new Date(new Date().getFullYear(), new Date().getMonth(), 16),
-    title: "Variables and Data Types",
-    completed: true
-  },
-  {
-    date: new Date(new Date().getFullYear(), new Date().getMonth(), 17),
-    title: "Control Flow Statements",
-    completed: false
-  },
-  {
-    date: new Date(new Date().getFullYear(), new Date().getMonth(), 18),
-    title: "Functions and Parameters",
-    completed: false
-  }
-];
+interface Topic {
+  id: string;
+  title: string;
+  completed: boolean;
+  day_number: number;
+  roadmap_id: string;
+}
 
-const CalendarView = () => {
+interface CalendarViewProps {
+  selectedRoadmapId: string | null;
+  topics: Record<string, Topic[]>;
+}
+
+const distributeTopicsToCalendar = (topics: Topic[], startDate = new Date()) => {
+  const calendarEvents: {
+    date: Date;
+    title: string;
+    completed: boolean;
+    id: string;
+    roadmap_id: string;
+  }[] = [];
+
+  const sortedTopics = [...topics].sort((a, b) => a.day_number - b.day_number);
+
+  sortedTopics.forEach((topic) => {
+    const topicDate = new Date(startDate);
+    topicDate.setDate(startDate.getDate() + (topic.day_number - 1));
+    
+    calendarEvents.push({
+      date: topicDate,
+      title: topic.title,
+      completed: topic.completed,
+      id: topic.id,
+      roadmap_id: topic.roadmap_id
+    });
+  });
+
+  return calendarEvents;
+};
+
+const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
   const [date, setDate] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [calendarEvents, setCalendarEvents] = useState<{
+    date: Date;
+    title: string;
+    completed: boolean;
+    id: string;
+    roadmap_id: string;
+  }[]>([]);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  // Get events for the selected date
+  useEffect(() => {
+    const allEvents: {
+      date: Date;
+      title: string;
+      completed: boolean;
+      id: string;
+      roadmap_id: string;
+    }[] = [];
+    
+    if (selectedRoadmapId && topics[selectedRoadmapId]) {
+      const roadmapTopics = topics[selectedRoadmapId];
+      allEvents.push(...distributeTopicsToCalendar(roadmapTopics));
+    } else {
+      Object.values(topics).forEach(roadmapTopics => {
+        allEvents.push(...distributeTopicsToCalendar(roadmapTopics));
+      });
+    }
+    
+    setCalendarEvents(allEvents);
+  }, [selectedRoadmapId, topics]);
+
   const selectedDateEvents = selectedDate 
     ? calendarEvents.filter(event => 
-        event.date.getDate() === selectedDate.getDate() && 
-        event.date.getMonth() === selectedDate.getMonth() && 
-        event.date.getFullYear() === selectedDate.getFullYear()
+        isSameDay(event.date, selectedDate)
       )
     : [];
 
-  // Custom day render function to show event indicators
+  const handleToggleComplete = async (topicId: string, currentStatus: boolean) => {
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('learning_topics')
+        .update({ completed: !currentStatus })
+        .eq('id', topicId);
+      
+      if (error) throw error;
+      
+      setCalendarEvents(events => 
+        events.map(event => 
+          event.id === topicId 
+            ? { ...event, completed: !currentStatus } 
+            : event
+        )
+      );
+      
+      toast.success(`Task ${!currentStatus ? 'completed' : 'marked as incomplete'}`);
+    } catch (error) {
+      console.error("Error updating topic status:", error);
+      toast.error("Failed to update task status");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const renderDay = (day: CalendarDayInfo) => {
-    // Check if this day has any events
     const hasEvents = calendarEvents.some(event => 
-      event.date.getDate() === day.date.getDate() && 
-      event.date.getMonth() === day.date.getMonth() && 
-      event.date.getFullYear() === day.date.getFullYear()
+      isSameDay(event.date, day.date)
     );
 
-    // Get completion status if events exist
     let allCompleted = false;
     if (hasEvents) {
       const dayEvents = calendarEvents.filter(event => 
-        event.date.getDate() === day.date.getDate() && 
-        event.date.getMonth() === day.date.getMonth() && 
-        event.date.getFullYear() === day.date.getFullYear()
+        isSameDay(event.date, day.date)
       );
       allCompleted = dayEvents.every(event => event.completed);
     }
@@ -87,7 +150,7 @@ const CalendarView = () => {
         "relative h-9 w-9 p-0 flex items-center justify-center",
         hasEvents && "font-semibold",
         hasEvents && allCompleted && "text-green-600",
-        day.className // This is the className property we added
+        day.className
       )}>
         <span>{day.day}</span>
         {hasEvents && (
@@ -110,7 +173,7 @@ const CalendarView = () => {
             mode="single"
             selected={selectedDate}
             onSelect={setSelectedDate}
-            className="border rounded-md"
+            className="border rounded-md pointer-events-auto"
             components={{
               Day: renderDay
             }}
@@ -121,10 +184,16 @@ const CalendarView = () => {
       <Card className="bg-glass">
         <CardHeader>
           <CardTitle>
-            {selectedDate ? `Topics for ${selectedDate.toLocaleDateString()}` : 'Select a date to view topics'}
+            {selectedDate ? `Topics for ${format(selectedDate, "MMMM d, yyyy")}` : 'Select a date to view topics'}
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {isUpdating && (
+            <div className="flex justify-center my-2">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            </div>
+          )}
+          
           {selectedDateEvents.length > 0 ? (
             <Table>
               <TableHeader>
@@ -134,19 +203,29 @@ const CalendarView = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {selectedDateEvents.map((event, index) => (
-                  <TableRow key={index}>
+                {selectedDateEvents.map((event) => (
+                  <TableRow key={event.id}>
                     <TableCell>{event.title}</TableCell>
                     <TableCell>
-                      {event.completed ? (
-                        <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-200 flex items-center gap-1">
-                          <CheckCircle className="h-3 w-3" /> Completed
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-200 flex items-center gap-1">
-                          <CircleDashed className="h-3 w-3" /> Pending
-                        </Badge>
-                      )}
+                      <Badge
+                        variant="outline"
+                        className={`${
+                          event.completed
+                            ? "bg-green-500/10 text-green-600 border-green-200"
+                            : "bg-amber-500/10 text-amber-600 border-amber-200"
+                        } flex items-center gap-1 cursor-pointer hover:bg-opacity-20 transition-colors`}
+                        onClick={() => handleToggleComplete(event.id, event.completed)}
+                      >
+                        {event.completed ? (
+                          <>
+                            <CheckCircle className="h-3 w-3" /> Completed
+                          </>
+                        ) : (
+                          <>
+                            <CircleDashed className="h-3 w-3" /> Pending
+                          </>
+                        )}
+                      </Badge>
                     </TableCell>
                   </TableRow>
                 ))}
