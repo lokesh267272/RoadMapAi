@@ -76,6 +76,7 @@ const distributeTopicsToCalendar = (topics: Topic[], startDate = new Date()) => 
     roadmap_id: string;
     description?: string | null;
     status: 'completed' | 'pending' | 'missed';
+    day_number: number; // Add this property to match our event structure
   }[] = [];
 
   const sortedTopics = [...topics].sort((a, b) => a.day_number - b.day_number);
@@ -101,7 +102,8 @@ const distributeTopicsToCalendar = (topics: Topic[], startDate = new Date()) => 
       id: topic.id,
       roadmap_id: topic.roadmap_id,
       description: topic.description,
-      status
+      status,
+      day_number: topic.day_number // Add the day_number to our event object
     });
   });
 
@@ -120,6 +122,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     roadmap_id: string;
     description?: string | null;
     status: 'completed' | 'pending' | 'missed';
+    day_number: number; // Add this property to the state type
   }[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -169,6 +172,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
       roadmap_id: string;
       description?: string | null;
       status: 'completed' | 'pending' | 'missed';
+      day_number: number; // Add this property to match our event structure
     }[] = [];
     
     if (selectedRoadmapId && topics[selectedRoadmapId]) {
@@ -286,7 +290,8 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
         updatedEvents.push({
           ...eventToUpdate,
           date: rescheduleDate,
-          status: 'pending'
+          status: 'pending',
+          day_number: newDayNumber // Update day_number in the local state
         });
         setCalendarEvents(updatedEvents);
       }
