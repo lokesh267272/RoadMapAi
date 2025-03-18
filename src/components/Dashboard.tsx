@@ -84,6 +84,27 @@ const DashboardComponent = () => {
     };
     
     fetchRoadmaps();
+    
+    // Set up realtime subscription for topics
+    const topicsChannel = supabase
+      .channel('public:learning_topics')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'learning_topics'
+        }, 
+        (payload) => {
+          console.log('Topics change received!', payload);
+          // Refresh data when changes occur
+          fetchRoadmaps();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(topicsChannel);
+    };
   }, [user, authLoading, navigate]);
 
   const handleCreateRoadmap = () => {

@@ -1,294 +1,371 @@
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend, PieChart, Pie, Cell } from "recharts";
-import { CheckCheck, Trophy, Calendar, ArrowUpRight, Clock, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  CheckCircle, 
+  Circle, 
+  Loader2, 
+  BarChart3, 
+  TrendingUp, 
+  Calendar, 
+  Clock
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { format, addDays, subDays, isSameDay } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
+import { format, parseISO, startOfWeek, endOfWeek, isSameDay } from "date-fns";
 
-const COLORS = ["#3b82f6", "#e2e8f0"];
+interface Topic {
+  id: string;
+  title: string;
+  completed: boolean;
+  day_number: number;
+  roadmap_id: string;
+  description?: string | null;
+  created_at: string;
+}
+
+interface Roadmap {
+  id: string;
+  title: string;
+  duration_days: number;
+  created_at: string;
+}
 
 interface ProgressTrackerProps {
   selectedRoadmapId: string | null;
 }
 
-interface TopicCompletionByDay {
-  day: string;
-  topics: number;
-  date: Date;
-}
-
 const ProgressTracker = ({ selectedRoadmapId }: ProgressTrackerProps) => {
-  const [weeklyProgress, setWeeklyProgress] = useState<TopicCompletionByDay[]>([]);
-  const [roadmapCompletion, setRoadmapCompletion] = useState([
-    { name: "Completed", value: 0 },
-    { name: "Remaining", value: 100 },
-  ]);
-  const [overallCompletion, setOverallCompletion] = useState(0);
-  const [dayStreak, setDayStreak] = useState(0);
-  const [topicsCompleted, setTopicsCompleted] = useState(0);
-  const [timeSpent, setTimeSpent] = useState("0h");
   const [isLoading, setIsLoading] = useState(true);
-
+  const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [completionPercentage, setCompletionPercentage] = useState(0);
+  const [completedCount, setCompletedCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [weeklyProgress, setWeeklyProgress] = useState<Record<string, number>>({}); 
+  const [streak, setStreak] = useState(0);
+  const [activeTab, setActiveTab] = useState("overview");
+  const { user } = useAuth();
+  
   useEffect(() => {
-    const fetchProgressData = async () => {
+    if (!selectedRoadmapId) return;
+    
+    const fetchRoadmapAndTopics = async () => {
       setIsLoading(true);
       try {
-        let topicsData;
+        // Fetch the roadmap
+        const { data: roadmapData, error: roadmapError } = await supabase
+          .from('learning_roadmaps')
+          .select('*')
+          .eq('id', selectedRoadmapId)
+          .single();
         
-        if (selectedRoadmapId) {
-          // Fetch topics for the selected roadmap
-          const { data, error } = await supabase
-            .from('learning_topics')
-            .select('*')
-            .eq('roadmap_id', selectedRoadmapId);
-            
-          if (error) throw error;
-          topicsData = data;
-        } else {
-          // Fetch all topics
-          const { data, error } = await supabase
-            .from('learning_topics')
-            .select('*');
-            
-          if (error) throw error;
-          topicsData = data;
-        }
+        if (roadmapError) throw roadmapError;
+        setRoadmap(roadmapData);
         
-        if (topicsData && topicsData.length > 0) {
-          // Calculate completion stats
-          const totalTopics = topicsData.length;
-          const completedTopics = topicsData.filter(topic => topic.completed).length;
-          const completionPercentage = Math.round((completedTopics / totalTopics) * 100);
+        // Fetch topics for this roadmap
+        const { data: topicsData, error: topicsError } = await supabase
+          .from('learning_topics')
+          .select('*')
+          .eq('roadmap_id', selectedRoadmapId)
+          .order('day_number', { ascending: true });
+        
+        if (topicsError) throw topicsError;
+        setTopics(topicsData || []);
+        
+        // Calculate completion percentage
+        const total = topicsData?.length || 0;
+        const completed = topicsData?.filter(topic => topic.completed).length || 0;
+        setTotalCount(total);
+        setCompletedCount(completed);
+        setCompletionPercentage(total > 0 ? Math.round((completed / total) * 100) : 0);
+        
+        // Calculate weekly progress
+        const weekProgress: Record<string, number> = {};
+        const today = new Date();
+        const startOfCurrentWeek = startOfWeek(today);
+        const endOfCurrentWeek = endOfWeek(today);
+        
+        for (let day = new Date(startOfCurrentWeek); day <= endOfCurrentWeek; day.setDate(day.getDate() + 1)) {
+          const dayStr = format(day, 'E');
+          const topicsForDay = topicsData?.filter(topic => {
+            const startDate = new Date();
+            const topicDate = new Date(startDate);
+            topicDate.setDate(startDate.getDate() + (topic.day_number - 1));
+            return isSameDay(topicDate, day);
+          }) || [];
           
-          // Update roadmap completion data
-          setRoadmapCompletion([
-            { name: "Completed", value: completionPercentage },
-            { name: "Remaining", value: 100 - completionPercentage },
-          ]);
-          
-          // Update topics completed counter
-          setTopicsCompleted(completedTopics);
-          
-          // Update overall completion percentage
-          setOverallCompletion(completionPercentage);
-          
-          // Calculate weekly progress
-          const today = new Date();
-          const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-          
-          const weeklyData: TopicCompletionByDay[] = [];
-          for (let i = 6; i >= 0; i--) {
-            const date = subDays(today, i);
-            const dayName = days[date.getDay()];
-            
-            // Count completed topics for this day
-            const dayCompletedTopics = topicsData.filter(topic => {
-              const topicDate = addDays(new Date(), topic.day_number - 1);
-              return topic.completed && isSameDay(topicDate, date);
-            });
-            
-            weeklyData.push({
-              day: dayName,
-              topics: dayCompletedTopics.length,
-              date
-            });
+          if (topicsForDay.length > 0) {
+            const dayCompletion = topicsForDay.filter(t => t.completed).length / topicsForDay.length;
+            weekProgress[dayStr] = Math.round(dayCompletion * 100);
+          } else {
+            weekProgress[dayStr] = 0;
           }
-          
-          setWeeklyProgress(weeklyData);
-          
-          // Calculate day streak
-          const streak = calculateStreak(topicsData);
-          setDayStreak(streak);
-          
-          // Estimate time spent (5 minutes per completed topic)
-          const timeInMinutes = completedTopics * 5;
-          const hours = Math.floor(timeInMinutes / 60);
-          const minutes = timeInMinutes % 60;
-          setTimeSpent(`${hours}h ${minutes > 0 ? minutes + 'm' : ''}`);
         }
+        setWeeklyProgress(weekProgress);
+        
+        // Calculate streak
+        const sortedTopics = [...topicsData || []].sort((a, b) => {
+          const dateA = new Date();
+          dateA.setDate(dateA.getDate() + (a.day_number - 1));
+          const dateB = new Date();
+          dateB.setDate(dateB.getDate() + (b.day_number - 1));
+          return dateB.getTime() - dateA.getTime(); // Sort in reverse chronological order
+        });
+        
+        let currentStreak = 0;
+        for (const topic of sortedTopics) {
+          const topicDate = new Date();
+          topicDate.setDate(topicDate.getDate() + (topic.day_number - 1));
+          
+          if (isSameDay(topicDate, today) || topicDate < today) {
+            if (topic.completed) {
+              currentStreak++;
+            } else {
+              break;
+            }
+          }
+        }
+        
+        setStreak(currentStreak);
       } catch (error) {
-        console.error("Error fetching progress data:", error);
-        toast.error("Failed to load progress data");
+        console.error("Error fetching roadmap and topics:", error);
       } finally {
         setIsLoading(false);
       }
     };
-
-    fetchProgressData();
-  }, [selectedRoadmapId]);
-
-  const calculateStreak = (topics: any[]) => {
-    // Simple streak calculation based on completed topics
-    // This is a simplified version - in a real app, you would track actual user activity
-    const dates = topics
-      .filter(topic => topic.completed)
-      .map(topic => {
-        // Create a date based on the day_number
-        const date = addDays(new Date(), topic.day_number - 1);
-        return format(date, 'yyyy-MM-dd');
-      });
     
-    // Count unique dates
-    const uniqueDates = new Set(dates);
-    return uniqueDates.size;
-  };
+    fetchRoadmapAndTopics();
+    
+    // Set up real-time subscription for updates
+    const topicsChannel = supabase
+      .channel('learning_topics_changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'learning_topics',
+          filter: `roadmap_id=eq.${selectedRoadmapId}`
+        }, 
+        (payload) => {
+          console.log('Change received!', payload);
+          // Refresh data when changes occur
+          fetchRoadmapAndTopics();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(topicsChannel);
+    };
+  }, [selectedRoadmapId]);
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!selectedRoadmapId || !roadmap) {
+    return (
+      <div className="text-center py-12 bg-muted/20 rounded-lg border border-dashed">
+        <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+        <h3 className="text-xl font-medium mb-2">No roadmap selected</h3>
+        <p className="text-muted-foreground max-w-md mx-auto">
+          Select a roadmap from your dashboard to view detailed progress
+        </p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6 animate-fadeInUp">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-glass shadow-sm">
-          <CardContent className="p-6 flex flex-col items-center justify-center text-center">
-            <div className="rounded-full bg-primary/10 p-3 mb-3">
-              <CheckCheck className="h-6 w-6 text-primary" />
-            </div>
-            <div className="text-2xl font-bold">{overallCompletion}%</div>
-            <p className="text-sm text-muted-foreground">Overall Completion</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-glass shadow-sm">
-          <CardContent className="p-6 flex flex-col items-center justify-center text-center">
-            <div className="rounded-full bg-primary/10 p-3 mb-3">
-              <Calendar className="h-6 w-6 text-primary" />
-            </div>
-            <div className="text-2xl font-bold">{dayStreak}</div>
-            <p className="text-sm text-muted-foreground">Day Streak</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-glass shadow-sm">
-          <CardContent className="p-6 flex flex-col items-center justify-center text-center">
-            <div className="rounded-full bg-primary/10 p-3 mb-3">
-              <Trophy className="h-6 w-6 text-primary" />
-            </div>
-            <div className="text-2xl font-bold">{topicsCompleted}</div>
-            <p className="text-sm text-muted-foreground">Topics Completed</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-glass shadow-sm">
-          <CardContent className="p-6 flex flex-col items-center justify-center text-center">
-            <div className="rounded-full bg-primary/10 p-3 mb-3">
-              <Clock className="h-6 w-6 text-primary" />
-            </div>
-            <div className="text-2xl font-bold">{timeSpent}</div>
-            <p className="text-sm text-muted-foreground">Time Spent Learning</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="bg-glass shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center justify-between">
-              <span>Weekly Progress</span>
-              <Button size="sm" variant="ghost" className="p-0 h-8 w-8">
-                <ArrowUpRight className="h-4 w-4" />
-              </Button>
-            </CardTitle>
+      <div className="flex flex-col md:flex-row gap-6">
+        <Card className="md:w-2/3 bg-glass shadow">
+          <CardHeader>
+            <CardTitle>{roadmap.title}</CardTitle>
           </CardHeader>
-          <CardContent className="p-6">
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weeklyProgress} margin={{ top: 20, right: 30, left: 20, bottom: 30 }}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                  <XAxis dataKey="day" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                      borderRadius: '8px',
-                      borderColor: '#e2e8f0',
-                      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
-                    }}
-                    formatter={(value, name) => [value, 'Completed Topics']}
-                    labelFormatter={(label) => {
-                      const item = weeklyProgress.find(item => item.day === label);
-                      return item ? format(item.date, 'MMMM d, yyyy') : label;
-                    }}
-                  />
-                  <Bar dataKey="topics" name="Completed Topics" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+          <CardContent>
+            <div className="space-y-6">
+              <div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm font-medium">Overall Progress</span>
+                  <span className="text-sm font-medium">{completionPercentage}%</span>
+                </div>
+                <Progress value={completionPercentage} className="h-2" />
+                <div className="flex justify-between mt-2 text-sm text-muted-foreground">
+                  <span>{completedCount} of {totalCount} topics completed</span>
+                  <span>{Math.max(0, totalCount - completedCount)} remaining</span>
+                </div>
+              </div>
+              
+              <div className="border rounded-lg p-4">
+                <h3 className="text-sm font-medium mb-3 flex items-center">
+                  <TrendingUp className="mr-2 h-4 w-4 text-primary" />
+                  Weekly Progress
+                </h3>
+                <div className="grid grid-cols-7 gap-1">
+                  {Object.entries(weeklyProgress).map(([day, value]) => (
+                    <div key={day} className="flex flex-col items-center">
+                      <span className="text-xs font-medium mb-1">{day}</span>
+                      <div className="w-full bg-muted rounded-full h-24 relative">
+                        <div 
+                          className="absolute bottom-0 left-0 right-0 bg-primary rounded-b-full transition-all"
+                          style={{ height: `${value}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-xs mt-1">{value}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
-
-        <Card className="bg-glass shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center justify-between">
-              <span>Roadmap Completion</span>
-              <Button size="sm" variant="ghost" className="p-0 h-8 w-8">
-                <ArrowUpRight className="h-4 w-4" />
-              </Button>
-            </CardTitle>
+        
+        <Card className="md:w-1/3 bg-glass shadow">
+          <CardHeader>
+            <CardTitle className="text-base">Stats</CardTitle>
           </CardHeader>
-          <CardContent className="p-6">
-            <div className="h-[300px] flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={roadmapCompletion}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={100}
-                    innerRadius={60}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {roadmapCompletion.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                    <CheckCircle className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Completion</div>
+                    <div className="text-2xl font-bold">{completionPercentage}%</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                    <Clock className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Learning Streak</div>
+                    <div className="text-2xl font-bold">{streak} days</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                    <BarChart3 className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Topics</div>
+                    <div className="text-2xl font-bold">{totalCount}</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      <Card className="bg-glass shadow-sm">
+      
+      <Card className="bg-glass shadow">
         <CardHeader>
-          <CardTitle className="text-lg">Learning Journey Insights</CardTitle>
+          <CardTitle>Learning Progress</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
-              <h3 className="font-medium flex items-center">
-                <Trophy className="text-primary mr-2 h-5 w-5" />
-                You're making excellent progress!
-              </h3>
-              <p className="text-muted-foreground mt-1">
-                You've maintained a {dayStreak}-day learning streak. Keep up the good work to achieve your goals faster.
-              </p>
-            </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="overview">All Topics</TabsTrigger>
+              <TabsTrigger value="completed">Completed</TabsTrigger>
+              <TabsTrigger value="incomplete">Incomplete</TabsTrigger>
+            </TabsList>
             
-            <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
-              <h3 className="font-medium flex items-center text-amber-700 dark:text-amber-300">
-                <ArrowUpRight className="mr-2 h-5 w-5" />
-                Recommendation
-              </h3>
-              <p className="text-amber-600 dark:text-amber-400 mt-1">
-                Based on your progress, we recommend focusing more on weekend learning to accelerate your roadmap completion.
-              </p>
-            </div>
-          </div>
+            <TabsContent value="overview" className="space-y-4">
+              {topics.map((topic) => (
+                <TopicItem key={topic.id} topic={topic} />
+              ))}
+            </TabsContent>
+            
+            <TabsContent value="completed" className="space-y-4">
+              {topics.filter(t => t.completed).map((topic) => (
+                <TopicItem key={topic.id} topic={topic} />
+              ))}
+            </TabsContent>
+            
+            <TabsContent value="incomplete" className="space-y-4">
+              {topics.filter(t => !t.completed).map((topic) => (
+                <TopicItem key={topic.id} topic={topic} />
+              ))}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
+    </div>
+  );
+};
+
+// Helper component for topic display
+const TopicItem = ({ topic }: { topic: Topic }) => {
+  const [isUpdating, setIsUpdating] = useState(false);
+  
+  const handleToggleStatus = async () => {
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('learning_topics')
+        .update({ completed: !topic.completed })
+        .eq('id', topic.id);
+      
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error updating topic status:", error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+  
+  const startDate = new Date();
+  const topicDate = new Date(startDate);
+  topicDate.setDate(startDate.getDate() + (topic.day_number - 1));
+  
+  return (
+    <div className="flex items-center space-x-4 p-3 border rounded-lg hover:bg-accent/10 transition-colors">
+      <button
+        onClick={handleToggleStatus}
+        disabled={isUpdating}
+        className="relative flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {isUpdating ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : topic.completed ? (
+          <CheckCircle className="h-4 w-4 fill-primary text-primary-foreground" />
+        ) : (
+          <Circle className="h-4 w-4 text-primary" />
+        )}
+      </button>
+      
+      <div className="flex-1 space-y-1">
+        <div className="flex items-center space-x-2">
+          <p className={`text-sm font-medium ${topic.completed ? "line-through text-muted-foreground" : ""}`}>
+            {topic.title}
+          </p>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
+            Day {topic.day_number}
+          </span>
+        </div>
+        {topic.description && (
+          <p className="text-xs text-muted-foreground">{topic.description}</p>
+        )}
+      </div>
+      
+      <div className="text-xs text-muted-foreground whitespace-nowrap">
+        {format(topicDate, "MMM d, yyyy")}
+      </div>
     </div>
   );
 };
