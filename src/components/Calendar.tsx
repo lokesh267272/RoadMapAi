@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { format, isSameDay, addDays, isToday, isAfter, isBefore, parseISO } from "date-fns";
+import { format, isSameDay, addDays, isToday, isAfter, isBefore, parseISO, startOfMonth } from "date-fns";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -40,7 +40,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogClose
+  DialogClose,
+  DialogDescription
 } from "@/components/ui/dialog";
 
 interface CalendarDayInfo {
@@ -76,15 +77,18 @@ const distributeTopicsToCalendar = (topics: Topic[], startDate = new Date()) => 
     roadmap_id: string;
     description?: string | null;
     status: 'completed' | 'pending' | 'missed';
-    day_number: number; // Add this property to match our event structure
+    day_number: number;
   }[] = [];
 
   const sortedTopics = [...topics].sort((a, b) => a.day_number - b.day_number);
   const today = new Date();
+  const firstDayOfMonth = startOfMonth(startDate);
 
   sortedTopics.forEach((topic) => {
-    const topicDate = new Date(startDate);
-    topicDate.setDate(startDate.getDate() + (topic.day_number - 1));
+    // Calculate the topic date based on the day_number
+    // We'll start from the first day of the current month
+    const topicDate = new Date(firstDayOfMonth);
+    topicDate.setDate(firstDayOfMonth.getDate() + (topic.day_number - 1));
     
     let status: 'completed' | 'pending' | 'missed';
     if (topic.completed) {
@@ -103,7 +107,7 @@ const distributeTopicsToCalendar = (topics: Topic[], startDate = new Date()) => 
       roadmap_id: topic.roadmap_id,
       description: topic.description,
       status,
-      day_number: topic.day_number // Add the day_number to our event object
+      day_number: topic.day_number
     });
   });
 
@@ -122,9 +126,10 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     roadmap_id: string;
     description?: string | null;
     status: 'completed' | 'pending' | 'missed';
-    day_number: number; // Add this property to the state type
+    day_number: number;
   }[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editTitle, setEditTitle] = useState("");
@@ -144,6 +149,8 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     if (allEvents.length > 0) {
       const completedCount = allEvents.filter(event => event.completed).length;
       setCompletionRate(Math.round((completedCount / allEvents.length) * 100));
+    } else {
+      setCompletionRate(0);
     }
     
     // Calculate streak
@@ -161,9 +168,14 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     }
     
     setStreak(currentStreak);
+    setIsLoading(false);
   }, [calendarEvents]);
 
+  // Load calendar events when topics or selected roadmap changes
   useEffect(() => {
+    setIsLoading(true);
+    
+    const firstDayOfMonth = startOfMonth(currentMonth);
     const allEvents: {
       date: Date;
       title: string;
@@ -172,20 +184,20 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
       roadmap_id: string;
       description?: string | null;
       status: 'completed' | 'pending' | 'missed';
-      day_number: number; // Add this property to match our event structure
+      day_number: number;
     }[] = [];
     
     if (selectedRoadmapId && topics[selectedRoadmapId]) {
       const roadmapTopics = topics[selectedRoadmapId];
-      allEvents.push(...distributeTopicsToCalendar(roadmapTopics));
+      allEvents.push(...distributeTopicsToCalendar(roadmapTopics, firstDayOfMonth));
     } else {
       Object.values(topics).forEach(roadmapTopics => {
-        allEvents.push(...distributeTopicsToCalendar(roadmapTopics));
+        allEvents.push(...distributeTopicsToCalendar(roadmapTopics, firstDayOfMonth));
       });
     }
     
     setCalendarEvents(allEvents);
-  }, [selectedRoadmapId, topics]);
+  }, [selectedRoadmapId, topics, currentMonth]);
 
   const selectedDateEvents = selectedDate 
     ? calendarEvents.filter(event => 
@@ -267,10 +279,9 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
       return;
     }
     
-    // Calculate the new day number
-    const startDate = new Date();
-    startDate.setHours(0, 0, 0, 0);
-    const timeDiff = rescheduleDate.getTime() - startDate.getTime();
+    // Calculate the new day number based on distance from the first day of the month
+    const firstDayOfMonth = startOfMonth(currentMonth);
+    const timeDiff = rescheduleDate.getTime() - firstDayOfMonth.getTime();
     const dayDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
     const newDayNumber = dayDiff + 1; // Day numbers start from 1
     
@@ -291,7 +302,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
           ...eventToUpdate,
           date: rescheduleDate,
           status: 'pending',
-          day_number: newDayNumber // Update day_number in the local state
+          day_number: newDayNumber
         });
         setCalendarEvents(updatedEvents);
       }
@@ -405,6 +416,15 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     );
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Loading calendar data...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 gap-6 animate-fadeInUp">
       <Card className="bg-glass shadow col-span-1">
@@ -477,6 +497,9 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
               <CalendarIcon className="h-5 w-5 text-primary" />
               {selectedDate && format(selectedDate, "EEEE, MMMM d, yyyy")}
             </DialogTitle>
+            <DialogDescription>
+              Manage your learning topics for this date
+            </DialogDescription>
           </DialogHeader>
           
           {editMode ? (
