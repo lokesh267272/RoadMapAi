@@ -3,9 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend, PieChart, Pie, Cell } from "recharts";
 import { CheckCheck, Trophy, Calendar, ArrowUpRight, Clock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-// Mock data for the charts
-const weeklyProgress = [
+// Mock data for when real data is still loading
+const defaultWeeklyProgress = [
   { day: "Mon", topics: 3 },
   { day: "Tue", topics: 2 },
   { day: "Wed", topics: 4 },
@@ -15,14 +18,87 @@ const weeklyProgress = [
   { day: "Sun", topics: 2 },
 ];
 
-const roadmapCompletion = [
+const defaultRoadmapCompletion = [
   { name: "Completed", value: 65 },
   { name: "Remaining", value: 35 },
 ];
 
 const COLORS = ["#3b82f6", "#e2e8f0"];
 
-const ProgressTracker = () => {
+interface ProgressTrackerProps {
+  selectedRoadmapId: string | null;
+}
+
+const ProgressTracker = ({ selectedRoadmapId }: ProgressTrackerProps) => {
+  const [weeklyProgress, setWeeklyProgress] = useState(defaultWeeklyProgress);
+  const [roadmapCompletion, setRoadmapCompletion] = useState(defaultRoadmapCompletion);
+  const [overallCompletion, setOverallCompletion] = useState(68);
+  const [dayStreak, setDayStreak] = useState(12);
+  const [topicsCompleted, setTopicsCompleted] = useState(49);
+  const [timeSpent, setTimeSpent] = useState("32h");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProgressData = async () => {
+      if (!selectedRoadmapId) {
+        // If no roadmap is selected, use default data
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        // Fetch topics for the selected roadmap
+        const { data: topicsData, error: topicsError } = await supabase
+          .from('learning_topics')
+          .select('*')
+          .eq('roadmap_id', selectedRoadmapId);
+
+        if (topicsError) throw topicsError;
+
+        if (topicsData && topicsData.length > 0) {
+          // Calculate completion stats
+          const totalTopics = topicsData.length;
+          const completedTopics = topicsData.filter(topic => topic.completed).length;
+          const completionPercentage = Math.round((completedTopics / totalTopics) * 100);
+          
+          // Update roadmap completion data
+          setRoadmapCompletion([
+            { name: "Completed", value: completionPercentage },
+            { name: "Remaining", value: 100 - completionPercentage },
+          ]);
+          
+          // Update topics completed counter
+          setTopicsCompleted(completedTopics);
+          
+          // Update overall completion percentage
+          setOverallCompletion(completionPercentage);
+          
+          // Generate weekly progress data
+          // Group topics by day and count completed ones
+          const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+          const weeklyData = days.map(day => {
+            const dayTopics = topicsData.filter(topic => {
+              // Simple mapping of day_number to day of week (1-7 → Mon-Sun)
+              const dayIndex = (topic.day_number - 1) % 7;
+              return days[dayIndex] === day && topic.completed;
+            });
+            return { day, topics: dayTopics.length };
+          });
+          
+          setWeeklyProgress(weeklyData);
+        }
+      } catch (error) {
+        console.error("Error fetching progress data:", error);
+        toast.error("Failed to load progress data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProgressData();
+  }, [selectedRoadmapId]);
+
   return (
     <div className="space-y-6 animate-fadeInUp">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -31,7 +107,7 @@ const ProgressTracker = () => {
             <div className="rounded-full bg-primary/10 p-3 mb-3">
               <CheckCheck className="h-6 w-6 text-primary" />
             </div>
-            <div className="text-2xl font-bold">68%</div>
+            <div className="text-2xl font-bold">{overallCompletion}%</div>
             <p className="text-sm text-muted-foreground">Overall Completion</p>
           </CardContent>
         </Card>
@@ -41,7 +117,7 @@ const ProgressTracker = () => {
             <div className="rounded-full bg-primary/10 p-3 mb-3">
               <Calendar className="h-6 w-6 text-primary" />
             </div>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">{dayStreak}</div>
             <p className="text-sm text-muted-foreground">Day Streak</p>
           </CardContent>
         </Card>
@@ -51,7 +127,7 @@ const ProgressTracker = () => {
             <div className="rounded-full bg-primary/10 p-3 mb-3">
               <Trophy className="h-6 w-6 text-primary" />
             </div>
-            <div className="text-2xl font-bold">49</div>
+            <div className="text-2xl font-bold">{topicsCompleted}</div>
             <p className="text-sm text-muted-foreground">Topics Completed</p>
           </CardContent>
         </Card>
@@ -61,7 +137,7 @@ const ProgressTracker = () => {
             <div className="rounded-full bg-primary/10 p-3 mb-3">
               <Clock className="h-6 w-6 text-primary" />
             </div>
-            <div className="text-2xl font-bold">32h</div>
+            <div className="text-2xl font-bold">{timeSpent}</div>
             <p className="text-sm text-muted-foreground">Time Spent Learning</p>
           </CardContent>
         </Card>
@@ -148,7 +224,7 @@ const ProgressTracker = () => {
                 You're making excellent progress!
               </h3>
               <p className="text-muted-foreground mt-1">
-                You've maintained a 12-day learning streak. Keep up the good work to achieve your goals faster.
+                You've maintained a {dayStreak}-day learning streak. Keep up the good work to achieve your goals faster.
               </p>
             </div>
             
