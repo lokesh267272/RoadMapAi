@@ -16,7 +16,7 @@ const ProgressIndicator: FC<ProgressIndicatorProps> = ({ isLoading, value }) => 
         <span>Generating your roadmap...</span>
         <span>{value}%</span>
       </div>
-      <Progress value={value} className="h-2" />
+      <Progress value={value} />
     </div>
   );
 };
