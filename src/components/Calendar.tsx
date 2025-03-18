@@ -11,10 +11,10 @@ import {
   TableCell 
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, CircleDashed, Loader2 } from "lucide-react";
+import { CheckCircle, CircleDashed, Loader2, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { format, isSameDay } from "date-fns";
+import { format, isSameDay, addDays } from "date-fns";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -148,111 +148,76 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
   };
 
   const renderDay = (day: CalendarDayInfo) => {
-    const hasEvents = calendarEvents.some(event => 
+    const dayEvents = calendarEvents.filter(event => 
       isSameDay(event.date, day.date)
     );
-
-    let allCompleted = false;
-    if (hasEvents) {
-      const dayEvents = calendarEvents.filter(event => 
-        isSameDay(event.date, day.date)
-      );
-      allCompleted = dayEvents.every(event => event.completed);
-    }
-
+    
+    const hasEvents = dayEvents.length > 0;
+    const allCompleted = hasEvents && dayEvents.every(event => event.completed);
+    const topicTitle = dayEvents.length > 0 ? dayEvents[0].title : '';
+    
     return (
       <div className={cn(
-        "relative h-9 w-9 p-0 flex items-center justify-center",
-        hasEvents && "font-semibold",
-        hasEvents && allCompleted && "text-green-600",
-        day.className
+        "relative w-full h-full min-h-[80px] p-1 border-r border-b",
+        !day.isCurrentMonth && "bg-gray-50/50 dark:bg-gray-900/20",
+        day.isToday && "bg-blue-50/50 dark:bg-blue-900/20",
+        day.isSelected && "bg-primary/10",
+        hasEvents && "cursor-pointer hover:bg-primary/5 transition-colors"
       )}>
-        <span>{day.day}</span>
-        {hasEvents && (
-          <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2">
-            <div className={`h-1 w-1 rounded-full ${allCompleted ? 'bg-green-500' : 'bg-primary'}`}></div>
+        <div className="flex flex-col h-full">
+          <div className="flex items-center justify-between mb-1">
+            <span className={cn(
+              "flex items-center justify-center h-6 w-6 text-sm font-medium rounded-full",
+              day.isToday && "bg-primary text-white",
+              !day.isToday && "text-gray-700 dark:text-gray-300"
+            )}>
+              {day.day}
+            </span>
+            {hasEvents && (
+              <span>
+                {allCompleted ? (
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                ) : (
+                  <BookOpen className="h-4 w-4 text-blue-500" />
+                )}
+              </span>
+            )}
           </div>
-        )}
+          
+          {hasEvents && (
+            <div className="mt-1 text-xs font-medium line-clamp-2 text-gray-700 dark:text-gray-300">
+              {topicTitle}
+            </div>
+          )}
+        </div>
       </div>
     );
   };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fadeInUp">
-      <Card className="bg-glass">
+      <Card className="bg-glass shadow col-span-2">
         <CardHeader>
           <CardTitle>Learning Calendar</CardTitle>
         </CardHeader>
         <CardContent>
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            onSelect={handleDateSelect}
-            className="border rounded-md pointer-events-auto"
-            components={{
-              Day: renderDay
-            }}
-          />
-        </CardContent>
-      </Card>
-
-      <Card className="bg-glass">
-        <CardHeader>
-          <CardTitle>
-            {selectedDate ? `Topics for ${format(selectedDate, "MMMM d, yyyy")}` : 'Select a date to view topics'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isUpdating && (
-            <div className="flex justify-center my-2">
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            </div>
-          )}
-          
-          {selectedDateEvents.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Topic</TableHead>
-                  <TableHead className="w-[100px]">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {selectedDateEvents.map((event) => (
-                  <TableRow key={event.id}>
-                    <TableCell>{event.title}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={`${
-                          event.completed
-                            ? "bg-green-500/10 text-green-600 border-green-200"
-                            : "bg-amber-500/10 text-amber-600 border-amber-200"
-                        } flex items-center gap-1 cursor-pointer hover:bg-opacity-20 transition-colors`}
-                        onClick={() => handleToggleComplete(event.id, event.completed)}
-                      >
-                        {event.completed ? (
-                          <>
-                            <CheckCircle className="h-3 w-3" /> Completed
-                          </>
-                        ) : (
-                          <>
-                            <CircleDashed className="h-3 w-3" /> Pending
-                          </>
-                        )}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="text-center py-6 text-muted-foreground">
-              {selectedDate 
-                ? "No learning topics scheduled for this date" 
-                : "Select a date to see your learning topics"}
-            </div>
-          )}
+          <div className="grid grid-cols-7 text-center border-t border-l">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+              <div key={day} className="p-2 font-medium text-sm border-r border-b bg-primary/5">
+                {day}
+              </div>
+            ))}
+            
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={handleDateSelect}
+              className="border rounded-none pointer-events-auto col-span-7"
+              components={{
+                Day: renderDay
+              }}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -273,8 +238,8 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
                     variant="outline"
                     className={`${
                       event.completed
-                        ? "bg-green-500/10 text-green-600 border-green-200"
-                        : "bg-amber-500/10 text-amber-600 border-amber-200"
+                        ? "bg-green-500/10 text-green-600 border-green-200 dark:text-green-400 dark:border-green-900"
+                        : "bg-amber-500/10 text-amber-600 border-amber-200 dark:text-amber-400 dark:border-amber-900"
                     } flex items-center gap-1 cursor-pointer hover:bg-opacity-20 transition-colors mt-2`}
                     onClick={() => handleToggleComplete(event.id, event.completed)}
                   >
