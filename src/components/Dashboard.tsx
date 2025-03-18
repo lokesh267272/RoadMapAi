@@ -24,6 +24,7 @@ interface Topic {
   title: string;
   completed: boolean;
   day_number: number;
+  roadmap_id: string;
 }
 
 const DashboardComponent = () => {

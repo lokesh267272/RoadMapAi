@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
@@ -15,6 +16,12 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isSameDay } from "date-fns";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface CalendarDayInfo {
   displayMonth: Date;
@@ -77,6 +84,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     roadmap_id: string;
   }[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     const allEvents: {
@@ -132,6 +140,13 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     }
   };
 
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+    if (date) {
+      setDialogOpen(true);
+    }
+  };
+
   const renderDay = (day: CalendarDayInfo) => {
     const hasEvents = calendarEvents.some(event => 
       isSameDay(event.date, day.date)
@@ -172,7 +187,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
           <Calendar
             mode="single"
             selected={selectedDate}
-            onSelect={setSelectedDate}
+            onSelect={handleDateSelect}
             className="border rounded-md pointer-events-auto"
             components={{
               Day: renderDay
@@ -240,6 +255,49 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDate ? `Topics for ${format(selectedDate, "MMMM d, yyyy")}` : 'Learning Topics'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedDateEvents.length > 0 ? (
+            <div className="mt-4 space-y-4">
+              {selectedDateEvents.map((event) => (
+                <div key={event.id} className="border rounded-md p-3 bg-card">
+                  <div className="font-medium mb-1">{event.title}</div>
+                  <Badge
+                    variant="outline"
+                    className={`${
+                      event.completed
+                        ? "bg-green-500/10 text-green-600 border-green-200"
+                        : "bg-amber-500/10 text-amber-600 border-amber-200"
+                    } flex items-center gap-1 cursor-pointer hover:bg-opacity-20 transition-colors mt-2`}
+                    onClick={() => handleToggleComplete(event.id, event.completed)}
+                  >
+                    {event.completed ? (
+                      <>
+                        <CheckCircle className="h-3 w-3" /> Completed
+                      </>
+                    ) : (
+                      <>
+                        <CircleDashed className="h-3 w-3" /> Pending
+                      </>
+                    )}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground">
+              No learning topics scheduled for this date
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
