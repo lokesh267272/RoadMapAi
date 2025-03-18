@@ -40,7 +40,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogClose
+  DialogClose,
+  DialogDescription
 } from "@/components/ui/dialog";
 
 interface CalendarDayInfo {
@@ -76,15 +77,18 @@ const distributeTopicsToCalendar = (topics: Topic[], startDate = new Date()) => 
     roadmap_id: string;
     description?: string | null;
     status: 'completed' | 'pending' | 'missed';
-    day_number: number; // Add this property to match our event structure
+    day_number: number;
   }[] = [];
 
+  // Ensure we start from the first day of the month for proper distribution
+  const firstDayOfMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+  
   const sortedTopics = [...topics].sort((a, b) => a.day_number - b.day_number);
   const today = new Date();
 
   sortedTopics.forEach((topic) => {
-    const topicDate = new Date(startDate);
-    topicDate.setDate(startDate.getDate() + (topic.day_number - 1));
+    const topicDate = new Date(firstDayOfMonth);
+    topicDate.setDate(firstDayOfMonth.getDate() + (topic.day_number - 1));
     
     let status: 'completed' | 'pending' | 'missed';
     if (topic.completed) {
@@ -103,7 +107,7 @@ const distributeTopicsToCalendar = (topics: Topic[], startDate = new Date()) => 
       roadmap_id: topic.roadmap_id,
       description: topic.description,
       status,
-      day_number: topic.day_number // Add the day_number to our event object
+      day_number: topic.day_number
     });
   });
 
@@ -122,7 +126,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     roadmap_id: string;
     description?: string | null;
     status: 'completed' | 'pending' | 'missed';
-    day_number: number; // Add this property to the state type
+    day_number: number;
   }[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -134,6 +138,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
   const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(undefined);
   const [streak, setStreak] = useState(0);
   const [completionRate, setCompletionRate] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Calculate completion metrics and streak
   useEffect(() => {
@@ -144,6 +149,8 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     if (allEvents.length > 0) {
       const completedCount = allEvents.filter(event => event.completed).length;
       setCompletionRate(Math.round((completedCount / allEvents.length) * 100));
+    } else {
+      setCompletionRate(0); // Set to 0 when no events exist
     }
     
     // Calculate streak
@@ -161,9 +168,11 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     }
     
     setStreak(currentStreak);
+    setIsLoading(false);
   }, [calendarEvents]);
 
   useEffect(() => {
+    setIsLoading(true);
     const allEvents: {
       date: Date;
       title: string;
@@ -172,7 +181,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
       roadmap_id: string;
       description?: string | null;
       status: 'completed' | 'pending' | 'missed';
-      day_number: number; // Add this property to match our event structure
+      day_number: number;
     }[] = [];
     
     if (selectedRoadmapId && topics[selectedRoadmapId]) {
@@ -291,7 +300,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
           ...eventToUpdate,
           date: rescheduleDate,
           status: 'pending',
-          day_number: newDayNumber // Update day_number in the local state
+          day_number: newDayNumber
         });
         setCalendarEvents(updatedEvents);
       }
@@ -365,7 +374,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     return (
       <div 
         className={cn(
-          "relative w-full h-full min-h-[100px] p-2 border-r border-b transition-all",
+          "relative w-full h-full flex flex-col min-h-[100px] p-2 border-r border-b transition-all",
           !day.isCurrentMonth && "bg-gray-50/50 dark:bg-gray-900/20",
           day.isToday && "bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-blue-400 dark:ring-blue-600",
           day.isSelected && "bg-primary/10",
@@ -373,25 +382,25 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
         )}
         onClick={() => hasEvents && handleDateSelect(day.date)}
       >
-        <div className="flex flex-col h-full space-y-1">
-          <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-1">
+          <span className={cn(
+            "flex items-center justify-center h-7 w-7 text-sm font-medium rounded-full",
+            day.isToday && "bg-primary text-white",
+            !day.isToday && "text-gray-700 dark:text-gray-300"
+          )}>
+            {day.day}
+          </span>
+          {hasEvents && topicStatus && (
             <span className={cn(
-              "flex items-center justify-center h-7 w-7 text-sm font-medium rounded-full",
-              day.isToday && "bg-primary text-white",
-              !day.isToday && "text-gray-700 dark:text-gray-300"
-            )}>
-              {day.day}
-            </span>
-            {hasEvents && topicStatus && (
-              <span className={cn(
-                "h-2 w-2 rounded-full",
-                topicStatus === 'completed' && "bg-green-500",
-                topicStatus === 'pending' && "bg-amber-500",
-                topicStatus === 'missed' && "bg-red-500"
-              )}/>
-            )}
-          </div>
-          
+              "h-2 w-2 rounded-full",
+              topicStatus === 'completed' && "bg-green-500",
+              topicStatus === 'pending' && "bg-amber-500",
+              topicStatus === 'missed' && "bg-red-500"
+            )}/>
+          )}
+        </div>
+        
+        <div className="flex-grow flex flex-col justify-start overflow-hidden">
           {hasEvents && (
             <div className={cn(
               "mt-1 p-1.5 rounded-md border text-xs font-medium line-clamp-3 transition-colors",
@@ -404,6 +413,14 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
       </div>
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 gap-6 animate-fadeInUp">
@@ -477,6 +494,9 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
               <CalendarIcon className="h-5 w-5 text-primary" />
               {selectedDate && format(selectedDate, "EEEE, MMMM d, yyyy")}
             </DialogTitle>
+            <DialogDescription>
+              View or modify your learning topics for this date.
+            </DialogDescription>
           </DialogHeader>
           
           {editMode ? (
