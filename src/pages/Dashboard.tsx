@@ -17,7 +17,7 @@ const Dashboard = () => {
   }, [user, isLoading, navigate]);
 
   return (
-    <div className="min-h-screen pt-20 pb-10">
+    <div className="min-h-screen pt-20 pb-10 px-4 max-w-screen-xl mx-auto">
       <DashboardComponent />
     </div>
   );
