@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { format, isSameDay, addDays, isToday, isAfter, isBefore, parseISO } from "date-fns";
+import { format, isSameDay, addDays, isToday, isAfter, isBefore, parseISO, startOfMonth } from "date-fns";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -40,8 +40,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogClose
+  DialogClose,
+  DialogDescription
 } from "@/components/ui/dialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface CalendarDayInfo {
   displayMonth: Date;
@@ -76,15 +78,18 @@ const distributeTopicsToCalendar = (topics: Topic[], startDate = new Date()) => 
     roadmap_id: string;
     description?: string | null;
     status: 'completed' | 'pending' | 'missed';
-    day_number: number; // Add this property to match our event structure
+    day_number: number;
   }[] = [];
 
+  // Get the first day of the current month
+  const firstDayOfMonth = startOfMonth(startDate);
   const sortedTopics = [...topics].sort((a, b) => a.day_number - b.day_number);
   const today = new Date();
 
   sortedTopics.forEach((topic) => {
-    const topicDate = new Date(startDate);
-    topicDate.setDate(startDate.getDate() + (topic.day_number - 1));
+    // Calculate date based on day_number relative to first day of month
+    const topicDate = new Date(firstDayOfMonth);
+    topicDate.setDate(firstDayOfMonth.getDate() + (topic.day_number - 1));
     
     let status: 'completed' | 'pending' | 'missed';
     if (topic.completed) {
@@ -103,7 +108,7 @@ const distributeTopicsToCalendar = (topics: Topic[], startDate = new Date()) => 
       roadmap_id: topic.roadmap_id,
       description: topic.description,
       status,
-      day_number: topic.day_number // Add the day_number to our event object
+      day_number: topic.day_number
     });
   });
 
@@ -122,9 +127,10 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     roadmap_id: string;
     description?: string | null;
     status: 'completed' | 'pending' | 'missed';
-    day_number: number; // Add this property to the state type
+    day_number: number;
   }[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editTitle, setEditTitle] = useState("");
@@ -134,6 +140,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
   const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(undefined);
   const [streak, setStreak] = useState(0);
   const [completionRate, setCompletionRate] = useState(0);
+  const isMobile = useIsMobile();
 
   // Calculate completion metrics and streak
   useEffect(() => {
@@ -144,6 +151,8 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     if (allEvents.length > 0) {
       const completedCount = allEvents.filter(event => event.completed).length;
       setCompletionRate(Math.round((completedCount / allEvents.length) * 100));
+    } else {
+      setCompletionRate(0); // Set to 0 if no events
     }
     
     // Calculate streak
@@ -161,9 +170,11 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     }
     
     setStreak(currentStreak);
+    setIsLoading(false);
   }, [calendarEvents]);
 
   useEffect(() => {
+    setIsLoading(true);
     const allEvents: {
       date: Date;
       title: string;
@@ -172,7 +183,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
       roadmap_id: string;
       description?: string | null;
       status: 'completed' | 'pending' | 'missed';
-      day_number: number; // Add this property to match our event structure
+      day_number: number;
     }[] = [];
     
     if (selectedRoadmapId && topics[selectedRoadmapId]) {
@@ -268,9 +279,8 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     }
     
     // Calculate the new day number
-    const startDate = new Date();
-    startDate.setHours(0, 0, 0, 0);
-    const timeDiff = rescheduleDate.getTime() - startDate.getTime();
+    const firstDayOfMonth = startOfMonth(new Date());
+    const timeDiff = rescheduleDate.getTime() - firstDayOfMonth.getTime();
     const dayDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
     const newDayNumber = dayDiff + 1; // Day numbers start from 1
     
@@ -291,7 +301,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
           ...eventToUpdate,
           date: rescheduleDate,
           status: 'pending',
-          day_number: newDayNumber // Update day_number in the local state
+          day_number: newDayNumber
         });
         setCalendarEvents(updatedEvents);
       }
@@ -365,7 +375,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     return (
       <div 
         className={cn(
-          "relative w-full h-full min-h-[100px] p-2 border-r border-b transition-all",
+          "relative w-full h-full min-h-[100px] p-2 border-r border-b transition-all flex flex-col",
           !day.isCurrentMonth && "bg-gray-50/50 dark:bg-gray-900/20",
           day.isToday && "bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-blue-400 dark:ring-blue-600",
           day.isSelected && "bg-primary/10",
@@ -373,37 +383,43 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
         )}
         onClick={() => hasEvents && handleDateSelect(day.date)}
       >
-        <div className="flex flex-col h-full space-y-1">
-          <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-1">
+          <span className={cn(
+            "flex items-center justify-center h-7 w-7 text-sm font-medium rounded-full",
+            day.isToday && "bg-primary text-white",
+            !day.isToday && "text-gray-700 dark:text-gray-300"
+          )}>
+            {day.day}
+          </span>
+          {hasEvents && topicStatus && (
             <span className={cn(
-              "flex items-center justify-center h-7 w-7 text-sm font-medium rounded-full",
-              day.isToday && "bg-primary text-white",
-              !day.isToday && "text-gray-700 dark:text-gray-300"
-            )}>
-              {day.day}
-            </span>
-            {hasEvents && topicStatus && (
-              <span className={cn(
-                "h-2 w-2 rounded-full",
-                topicStatus === 'completed' && "bg-green-500",
-                topicStatus === 'pending' && "bg-amber-500",
-                topicStatus === 'missed' && "bg-red-500"
-              )}/>
-            )}
-          </div>
-          
-          {hasEvents && (
-            <div className={cn(
-              "mt-1 p-1.5 rounded-md border text-xs font-medium line-clamp-3 transition-colors",
-              getStatusColor(topicStatus!)
-            )}>
-              {topicTitle}
-            </div>
+              "h-2 w-2 rounded-full",
+              topicStatus === 'completed' && "bg-green-500",
+              topicStatus === 'pending' && "bg-amber-500",
+              topicStatus === 'missed' && "bg-red-500"
+            )}/>
           )}
         </div>
+        
+        {hasEvents && (
+          <div className={cn(
+            "mt-auto p-1.5 rounded-md border text-xs font-medium line-clamp-2 transition-colors",
+            getStatusColor(topicStatus!)
+          )}>
+            {topicTitle}
+          </div>
+        )}
       </div>
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-60">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 gap-6 animate-fadeInUp">
@@ -425,7 +441,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
         
         <CardContent>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 xs:grid-cols-1">
               <div className="flex items-center p-3 bg-primary/5 rounded-lg border">
                 <div className="flex-1">
                   <div className="text-sm font-medium text-muted-foreground">Current Streak</div>
@@ -447,24 +463,30 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
               </div>
             </div>
             
-            <div className="grid grid-cols-7 text-center border-t border-l rounded-md overflow-hidden">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                <div key={day} className="p-2 font-medium text-sm border-r border-b bg-primary/5">
-                  {day}
+            <div className="overflow-x-auto rounded-md">
+              <div className="min-w-full">
+                <div className="grid grid-cols-7 text-center border-t border-l rounded-md overflow-hidden">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                    <div key={day} className="p-2 font-medium text-sm border-r border-b bg-primary/5">
+                      {isMobile ? day.charAt(0) : day}
+                    </div>
+                  ))}
                 </div>
-              ))}
-              
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={handleDateSelect}
-                month={currentMonth}
-                onMonthChange={setCurrentMonth}
-                className="border rounded-none pointer-events-auto col-span-7"
-                components={{
-                  Day: renderDay
-                }}
-              />
+                
+                <div className="grid grid-cols-7 border-l">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={handleDateSelect}
+                    month={currentMonth}
+                    onMonthChange={setCurrentMonth}
+                    className="border rounded-none pointer-events-auto col-span-7 w-full"
+                    components={{
+                      Day: renderDay
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -477,6 +499,9 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
               <CalendarIcon className="h-5 w-5 text-primary" />
               {selectedDate && format(selectedDate, "EEEE, MMMM d, yyyy")}
             </DialogTitle>
+            <DialogDescription>
+              Manage your learning topics for this day
+            </DialogDescription>
           </DialogHeader>
           
           {editMode ? (
