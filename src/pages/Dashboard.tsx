@@ -1,33 +1,20 @@
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import DashboardComponent from "@/components/Dashboard";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 
 const Dashboard = () => {
-  const { user, isLoading: authLoading } = useAuth();
-  const [isPageLoading, setIsPageLoading] = useState(true);
+  const { user, isLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        toast.error("Please sign in to view your dashboard");
-        navigate("/auth");
-      }
-      setIsPageLoading(false);
+    if (!isLoading && !user) {
+      toast.error("Please sign in to view your dashboard");
+      navigate("/auth");
     }
-  }, [user, authLoading, navigate]);
-
-  if (isPageLoading || authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    );
-  }
+  }, [user, isLoading, navigate]);
 
   return (
     <div className="min-h-screen pt-20 pb-10">
