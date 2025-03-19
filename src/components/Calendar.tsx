@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar } from "@/components/ui/calendar";
 import { 
   Table, 
   TableHeader, 
@@ -45,16 +44,7 @@ import {
   DialogDescription
 } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-
-interface CalendarDayInfo {
-  displayMonth: Date;
-  className?: string;
-  date: Date;
-  day: number;
-  isCurrentMonth: boolean;
-  isToday: boolean;
-  isSelected: boolean;
-}
+import { FullScreenCalendar } from "./ui/fullscreen-calendar";
 
 interface Topic {
   id: string;
@@ -409,72 +399,63 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     );
   };
 
+  const getCalendarData = () => {
+    const data: {
+      day: Date;
+      events: {
+        id: number;
+        name: string;
+        time: string;
+        datetime: string;
+      }[];
+    }[] = [];
+
+    const eventsByDate = new Map<string, {
+      day: Date;
+      events: {
+        id: number;
+        name: string;
+        time: string;
+        datetime: string;
+      }[];
+    }>();
+
+    calendarEvents.forEach(event => {
+      const dateStr = format(event.date, 'yyyy-MM-dd');
+      if (!eventsByDate.has(dateStr)) {
+        eventsByDate.set(dateStr, {
+          day: event.date,
+          events: []
+        });
+      }
+
+      const entry = eventsByDate.get(dateStr);
+      if (entry) {
+        entry.events.push({
+          id: parseInt(event.id.slice(0, 8), 16),
+          name: event.title,
+          time: event.status === 'completed' ? 'Completed' : event.status === 'pending' ? 'Pending' : 'Missed',
+          datetime: format(event.date, 'yyyy-MM-dd')
+        });
+      }
+    });
+
+    eventsByDate.forEach(value => {
+      data.push(value);
+    });
+
+    return data;
+  };
+
   return (
     <div className="grid grid-cols-1 gap-6 animate-fadeInUp">
       <Card className="bg-glass shadow col-span-1">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-xl">Learning Calendar</CardTitle>
-          <div className="flex items-center space-x-1">
-            <Button variant="outline" size="sm" onClick={handlePrevMonth}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="px-2 font-medium">
-              {format(currentMonth, "MMMM yyyy")}
-            </span>
-            <Button variant="outline" size="sm" onClick={handleNextMonth}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
         </CardHeader>
         
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex items-center p-3 bg-primary/5 rounded-lg border">
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-muted-foreground">Current Streak</div>
-                  <div className="flex items-center">
-                    <CheckCheck className="h-4 w-4 mr-1 text-primary" />
-                    <span className="text-2xl font-bold">{streak} days</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center p-3 bg-primary/5 rounded-lg border">
-                <div className="flex-1">
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-muted-foreground">Completion Rate</span>
-                    <span className="text-sm font-medium">{completionRate}%</span>
-                  </div>
-                  <Progress value={completionRate} className="h-2 mt-2" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="rounded-lg overflow-hidden border border-border">
-              <div className="grid grid-cols-7 text-center">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                  <div key={day} className="p-2 font-medium text-sm bg-primary/5 border-b border-r last:border-r-0">
-                    {day}
-                  </div>
-                ))}
-              </div>
-              
-              <div className="relative">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={handleDateSelect}
-                  month={currentMonth}
-                  onMonthChange={setCurrentMonth}
-                  className="border-none rounded-none pointer-events-auto w-full"
-                  components={{
-                    Day: renderDay
-                  }}
-                />
-              </div>
-            </div>
-          </div>
+        <CardContent className="p-0">
+          <FullScreenCalendar data={getCalendarData()} />
         </CardContent>
       </Card>
 
