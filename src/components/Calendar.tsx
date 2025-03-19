@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
@@ -28,7 +27,9 @@ import {
   Edit,
   ArrowRight,
   X,
-  CheckCheck
+  CheckCheck,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,6 +44,7 @@ import {
   DialogClose,
   DialogDescription
 } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface CalendarDayInfo {
   displayMonth: Date;
@@ -123,7 +125,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     roadmap_id: string;
     description?: string | null;
     status: 'completed' | 'pending' | 'missed';
-    day_number: number; // Add this property to the state type
+    day_number: number;
   }[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -135,23 +137,28 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
   const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(undefined);
   const [streak, setStreak] = useState(0);
   const [completionRate, setCompletionRate] = useState(0);
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({});
 
-  // Calculate completion metrics and streak
+  const toggleDescription = (id: string) => {
+    setExpandedDescriptions(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
   useEffect(() => {
     const allEvents = [...calendarEvents];
     const today = new Date();
     
-    // Calculate completion rate
     if (allEvents.length > 0) {
       const completedCount = allEvents.filter(event => event.completed).length;
       setCompletionRate(Math.round((completedCount / allEvents.length) * 100));
     }
     
-    // Calculate streak
     let currentStreak = 0;
     const sortedDates = [...allEvents]
       .filter(event => isBefore(event.date, today) || isSameDay(event.date, today))
-      .sort((a, b) => b.date.getTime() - a.date.getTime()); // Sort in reverse chronological order
+      .sort((a, b) => b.date.getTime() - a.date.getTime());
     
     for (const event of sortedDates) {
       if (event.completed) {
@@ -173,7 +180,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
       roadmap_id: string;
       description?: string | null;
       status: 'completed' | 'pending' | 'missed';
-      day_number: number; // Add this property to match our event structure
+      day_number: number;
     }[] = [];
     
     if (selectedRoadmapId && topics[selectedRoadmapId]) {
@@ -268,12 +275,11 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
       return;
     }
     
-    // Calculate the new day number
     const startDate = new Date();
     startDate.setHours(0, 0, 0, 0);
     const timeDiff = rescheduleDate.getTime() - startDate.getTime();
     const dayDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
-    const newDayNumber = dayDiff + 1; // Day numbers start from 1
+    const newDayNumber = dayDiff + 1;
     
     setIsUpdating(true);
     try {
@@ -284,7 +290,6 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
       
       if (error) throw error;
       
-      // Update local state
       const eventToUpdate = calendarEvents.find(event => event.id === topicId);
       if (eventToUpdate) {
         const updatedEvents = calendarEvents.filter(event => event.id !== topicId);
@@ -292,7 +297,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
           ...eventToUpdate,
           date: rescheduleDate,
           status: 'pending',
-          day_number: newDayNumber // Update day_number in the local state
+          day_number: newDayNumber
         });
         setCalendarEvents(updatedEvents);
       }
@@ -366,7 +371,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     return (
       <div 
         className={cn(
-          "relative w-full h-full min-h-[80px] p-2 border border-border transition-all flex flex-col",
+          "relative w-full flex-1 min-h-[80px] p-2 border border-border transition-all flex flex-col",
           !day.isCurrentMonth && "bg-gray-50/50 dark:bg-gray-900/20",
           day.isToday && "bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-blue-400 dark:ring-blue-600",
           day.isSelected && "bg-primary/10",
@@ -394,7 +399,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
         
         {hasEvents && (
           <div className={cn(
-            "mt-auto p-1.5 rounded-md border text-xs font-medium overflow-hidden overflow-ellipsis transition-colors",
+            "mt-auto p-1.5 rounded-md border text-xs font-medium overflow-hidden",
             getStatusColor(topicStatus!)
           )}>
             <div className="line-clamp-2">{topicTitle}</div>
@@ -455,29 +460,34 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
                 ))}
               </div>
               
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={handleDateSelect}
-                month={currentMonth}
-                onMonthChange={setCurrentMonth}
-                className="border-none rounded-none pointer-events-auto w-full"
-                components={{
-                  Day: renderDay
-                }}
-              />
+              <div className="relative">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateSelect}
+                  month={currentMonth}
+                  onMonthChange={setCurrentMonth}
+                  className="border-none rounded-none pointer-events-auto w-full"
+                  components={{
+                    Day: renderDay
+                  }}
+                />
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CalendarIcon className="h-5 w-5 text-primary" />
               {selectedDate && format(selectedDate, "EEEE, MMMM d, yyyy")}
             </DialogTitle>
+            <DialogDescription>
+              View and manage your learning topics for this date.
+            </DialogDescription>
           </DialogHeader>
           
           {editMode ? (
@@ -567,30 +577,59 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
             <div className="space-y-4 py-4">
               {selectedDateEvents.map((event) => (
                 <div key={event.id} className={cn(
-                  "border rounded-lg p-4 transition-colors",
+                  "border rounded-lg overflow-hidden transition-colors",
                   getStatusColor(event.status)
                 )}>
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <h3 className="font-medium text-base">{event.title}</h3>
-                      {event.description && (
-                        <p className="text-sm">{event.description}</p>
-                      )}
+                  <div className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <h3 className="font-medium text-base">{event.title}</h3>
+                        {event.description && !expandedDescriptions[event.id] && (
+                          <p className="text-sm line-clamp-2">{event.description}</p>
+                        )}
+                      </div>
+                      
+                      <Checkbox
+                        checked={event.completed}
+                        onCheckedChange={() => handleToggleComplete(event.id, event.completed)}
+                        className={cn(
+                          "h-5 w-5",
+                          event.completed && "text-green-500 border-green-500",
+                          !event.completed && "text-amber-500 border-amber-500"
+                        )}
+                        disabled={isUpdating}
+                      />
                     </div>
                     
-                    <Checkbox
-                      checked={event.completed}
-                      onCheckedChange={() => handleToggleComplete(event.id, event.completed)}
-                      className={cn(
-                        "h-5 w-5",
-                        event.completed && "text-green-500 border-green-500",
-                        !event.completed && "text-amber-500 border-amber-500"
-                      )}
-                      disabled={isUpdating}
-                    />
+                    {event.description && event.description.length > 100 && (
+                      <Collapsible 
+                        open={expandedDescriptions[event.id]} 
+                        onOpenChange={() => toggleDescription(event.id)}
+                        className="mt-2"
+                      >
+                        <CollapsibleContent className="text-sm mt-2">
+                          {event.description}
+                        </CollapsibleContent>
+                        
+                        <CollapsibleTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="mt-1 h-auto p-0 text-xs font-medium"
+                          >
+                            {expandedDescriptions[event.id] ? (
+                              <ChevronUp className="h-3 w-3 mr-1" />
+                            ) : (
+                              <ChevronDown className="h-3 w-3 mr-1" />
+                            )}
+                            {expandedDescriptions[event.id] ? "Show Less" : "Read More"}
+                          </Button>
+                        </CollapsibleTrigger>
+                      </Collapsible>
+                    )}
                   </div>
                   
-                  <div className="flex items-center justify-end space-x-2 mt-4">
+                  <div className="flex items-center justify-end space-x-2 px-4 py-3 bg-background/10 border-t">
                     <Button
                       variant="outline"
                       size="sm"
