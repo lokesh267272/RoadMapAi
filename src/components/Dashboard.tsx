@@ -11,6 +11,7 @@ import ProgressTracker from "./ProgressTracker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { isToday, subDays, isBefore, isAfter, formatDistance } from "date-fns";
 
 interface Roadmap {
   id: string;
@@ -25,6 +26,8 @@ interface Topic {
   completed: boolean;
   day_number: number;
   roadmap_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
 const DashboardComponent = () => {
@@ -34,6 +37,7 @@ const DashboardComponent = () => {
   const [topics, setTopics] = useState<Record<string, Topic[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRoadmap, setSelectedRoadmap] = useState<string | null>(null);
+  const [streak, setStreak] = useState(0);
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
 
@@ -74,6 +78,7 @@ const DashboardComponent = () => {
           }
           
           setTopics(topicsData);
+          calculateStreak(topicsData);
         }
       } catch (error: any) {
         console.error("Error fetching roadmaps:", error);
@@ -85,9 +90,26 @@ const DashboardComponent = () => {
     
     fetchRoadmaps();
     
+    // Set up realtime subscription for roadmaps
+    const roadmapsChannel = supabase
+      .channel('roadmaps_changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'learning_roadmaps'
+        }, 
+        (payload) => {
+          console.log('Roadmaps change received!', payload);
+          // Refresh data when changes occur
+          fetchRoadmaps();
+        }
+      )
+      .subscribe();
+      
     // Set up realtime subscription for topics
     const topicsChannel = supabase
-      .channel('public:learning_topics')
+      .channel('topics_changes')
       .on('postgres_changes', 
         { 
           event: '*', 
@@ -103,9 +125,75 @@ const DashboardComponent = () => {
       .subscribe();
       
     return () => {
+      supabase.removeChannel(roadmapsChannel);
       supabase.removeChannel(topicsChannel);
     };
   }, [user, authLoading, navigate]);
+
+  // Calculate the user's current streak based on completed topics
+  const calculateStreak = (topicsData: Record<string, Topic[]>) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Collect all completed topics across all roadmaps
+    const allCompletedTopics: Topic[] = [];
+    Object.values(topicsData).forEach(roadmapTopics => {
+      allCompletedTopics.push(...roadmapTopics.filter(topic => topic.completed));
+    });
+    
+    // Sort by updated_at in descending order (most recent first)
+    allCompletedTopics.sort((a, b) => 
+      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    );
+    
+    if (allCompletedTopics.length === 0) {
+      setStreak(0);
+      return;
+    }
+    
+    // Check if any topic was completed today
+    const hasCompletedToday = allCompletedTopics.some(topic => 
+      isToday(new Date(topic.updated_at))
+    );
+    
+    if (!hasCompletedToday) {
+      // Check if any topic was completed yesterday
+      const yesterday = subDays(today, 1);
+      const hasCompletedYesterday = allCompletedTopics.some(topic => {
+        const completedDate = new Date(topic.updated_at);
+        completedDate.setHours(0, 0, 0, 0);
+        return completedDate.getTime() === yesterday.getTime();
+      });
+      
+      // If no completion yesterday, reset streak
+      if (!hasCompletedYesterday) {
+        setStreak(0);
+        return;
+      }
+    }
+    
+    // Calculate continuous streak
+    let currentStreak = 0;
+    let currentDate = new Date(today);
+    
+    while (true) {
+      // Check if there's any topic completed on this date
+      const hasCompletedOnDate = allCompletedTopics.some(topic => {
+        const completedDate = new Date(topic.updated_at);
+        completedDate.setHours(0, 0, 0, 0);
+        return completedDate.getTime() === currentDate.getTime();
+      });
+      
+      if (hasCompletedOnDate) {
+        currentStreak++;
+        currentDate = subDays(currentDate, 1);
+      } else {
+        break;
+      }
+    }
+    
+    setStreak(currentStreak);
+  };
 
   const handleCreateRoadmap = () => {
     setIsCreatingRoadmap(true);
@@ -225,7 +313,7 @@ const DashboardComponent = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">12 days</div>
+                <div className="text-2xl font-bold">{streak} days</div>
               </CardContent>
             </Card>
           </div>
