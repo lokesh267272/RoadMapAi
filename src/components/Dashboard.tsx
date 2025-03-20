@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, CheckCircle, Clock, Plus, Target, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import RoadmapGenerator from "./RoadmapGenerator";
-import CalendarView from "./Calendar";
+import CalendarView from "./calendar"; // Updated import path
 import ProgressTracker from "./ProgressTracker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";

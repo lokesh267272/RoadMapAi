@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { format } from "date-fns";
+import { format, isBefore, isToday } from "date-fns"; // Added the missing imports
 import { CalendarIcon, Edit, ArrowRight, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { CalendarEvent } from "./types";
 import { getStatusColor } from "./utils";
