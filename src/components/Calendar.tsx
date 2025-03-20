@@ -377,7 +377,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
             day.isToday && "bg-primary text-white",
             !day.isToday && "text-gray-700 dark:text-gray-300"
           )}>
-            {day.day}
+            {format(day.date, 'd')}
           </span>
           {hasEvents && topicStatus && (
             <span className={cn(
