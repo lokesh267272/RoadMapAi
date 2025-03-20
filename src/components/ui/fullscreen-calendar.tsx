@@ -42,6 +42,7 @@ interface CalendarData {
 
 interface FullScreenCalendarProps {
   data: CalendarData[]
+  onDayClick?: (date: Date) => void
 }
 
 const colStartClasses = [
@@ -54,7 +55,7 @@ const colStartClasses = [
   "col-start-7",
 ]
 
-export function FullScreenCalendar({ data }: FullScreenCalendarProps) {
+export function FullScreenCalendar({ data, onDayClick }: FullScreenCalendarProps) {
   const today = startOfToday()
   const [selectedDay, setSelectedDay] = React.useState(today)
   const [currentMonth, setCurrentMonth] = React.useState(
@@ -80,6 +81,13 @@ export function FullScreenCalendar({ data }: FullScreenCalendarProps) {
 
   function goToToday() {
     setCurrentMonth(format(today, "MMM-yyyy"))
+  }
+
+  function handleDayClick(day: Date) {
+    setSelectedDay(day);
+    if (onDayClick) {
+      onDayClick(day);
+    }
   }
 
   return (
@@ -175,7 +183,7 @@ export function FullScreenCalendar({ data }: FullScreenCalendarProps) {
             {days.map((day, dayIdx) =>
               !isDesktop ? (
                 <button
-                  onClick={() => setSelectedDay(day)}
+                  onClick={() => handleDayClick(day)}
                   key={dayIdx}
                   type="button"
                   className={cn(
@@ -231,14 +239,14 @@ export function FullScreenCalendar({ data }: FullScreenCalendarProps) {
               ) : (
                 <div
                   key={dayIdx}
-                  onClick={() => setSelectedDay(day)}
+                  onClick={() => handleDayClick(day)}
                   className={cn(
                     dayIdx === 0 && colStartClasses[getDay(day)],
                     !isEqual(day, selectedDay) &&
                       !isToday(day) &&
                       !isSameMonth(day, firstDayCurrentMonth) &&
                       "bg-accent/50 text-muted-foreground",
-                    "relative flex flex-col border-b border-r hover:bg-muted focus:z-10",
+                    "relative flex flex-col border-b border-r cursor-pointer hover:bg-muted focus:z-10",
                     !isEqual(day, selectedDay) && "hover:bg-accent/75",
                   )}
                 >
@@ -305,7 +313,7 @@ export function FullScreenCalendar({ data }: FullScreenCalendarProps) {
           <div className="isolate grid w-full grid-cols-7 grid-rows-5 border-x lg:hidden">
             {days.map((day, dayIdx) => (
               <button
-                onClick={() => setSelectedDay(day)}
+                onClick={() => handleDayClick(day)}
                 key={dayIdx}
                 type="button"
                 className={cn(

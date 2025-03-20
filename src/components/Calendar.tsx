@@ -47,6 +47,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { FullScreenCalendar } from "./ui/fullscreen-calendar";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarDayInfo, CalendarProps } from "@/types/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Topic {
   id: string;
@@ -449,6 +450,11 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     return data;
   };
 
+  const handleDayClick = (date: Date) => {
+    setSelectedDate(date);
+    setDialogOpen(true);
+  };
+
   return (
     <div className="grid grid-cols-1 gap-6 animate-fadeInUp">
       <Card className="bg-glass shadow col-span-1">
@@ -457,7 +463,10 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
         </CardHeader>
         
         <CardContent className="p-0">
-          <FullScreenCalendar data={getCalendarData()} />
+          <FullScreenCalendar 
+            data={getCalendarData()} 
+            onDayClick={handleDayClick}
+          />
         </CardContent>
       </Card>
 
