@@ -45,6 +45,8 @@ import {
 } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { FullScreenCalendar } from "./ui/fullscreen-calendar";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarDayInfo, CalendarProps } from "@/types/calendar";
 
 interface Topic {
   id: string;
