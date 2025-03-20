@@ -1,6 +1,6 @@
 
-import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
 import { FC } from "react";
 
 interface DurationSliderProps {
@@ -12,22 +12,22 @@ const DurationSlider: FC<DurationSliderProps> = ({ value, onChange }) => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <Label>Duration (days)</Label>
-        <span className="bg-primary/10 text-primary px-2 py-1 rounded-md text-sm font-medium">
-          {value[0]} days
-        </span>
+        <Label htmlFor="duration">Duration (Days)</Label>
+        <span className="text-sm font-medium">{value[0]} days</span>
       </div>
       <Slider
-        value={value}
-        onValueChange={onChange}
+        id="duration"
+        defaultValue={value}
         max={90}
         min={7}
         step={1}
-        className="py-2"
+        value={value}
+        onValueChange={onChange}
       />
-      <div className="flex justify-between text-sm text-muted-foreground">
+      <div className="flex justify-between text-xs text-muted-foreground">
         <span>1 week</span>
-        <span>90 days</span>
+        <span>1 month</span>
+        <span>3 months</span>
       </div>
     </div>
   );

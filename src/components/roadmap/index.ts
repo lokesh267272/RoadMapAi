@@ -1,2 +1,2 @@
 
-export { default as RoadmapGenerator } from "./RoadmapGenerator";
+export { default } from "./RoadmapGenerator";

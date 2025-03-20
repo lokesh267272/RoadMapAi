@@ -11,13 +11,13 @@ interface LearningGoalInputProps {
 const LearningGoalInput: FC<LearningGoalInputProps> = ({ value, onChange }) => {
   return (
     <div className="space-y-2">
-      <Label htmlFor="learning-goal">Learning Goal</Label>
+      <Label htmlFor="learningGoal">What do you want to learn?</Label>
       <Input
-        id="learning-goal"
-        placeholder="e.g., Learn JavaScript in 30 days"
+        id="learningGoal"
+        placeholder="e.g. JavaScript, Machine Learning, Spanish..."
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-background/50"
+        required
       />
     </div>
   );

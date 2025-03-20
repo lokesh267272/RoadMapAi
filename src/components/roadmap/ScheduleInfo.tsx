@@ -1,23 +1,45 @@
 
-import { Calendar } from "lucide-react";
 import { FC } from "react";
+import { CalendarDays, Clock, LucideIcon } from "lucide-react";
 
 interface ScheduleInfoProps {
   duration: number;
 }
 
 const ScheduleInfo: FC<ScheduleInfoProps> = ({ duration }) => {
-  return (
-    <div className="bg-muted/50 rounded-lg p-4 border">
-      <div className="flex items-start gap-3">
-        <Calendar className="h-5 w-5 text-primary mt-0.5" />
-        <div>
-          <h3 className="font-medium">Planning your schedule</h3>
-          <p className="text-muted-foreground text-sm">
-            Your roadmap will include {duration} daily learning topics. You can adjust your schedule later if needed.
-          </p>
-        </div>
+  // Calculate some additional info
+  const estimatedHoursPerDay = 1;
+  const totalHours = duration * estimatedHoursPerDay;
+  
+  const ScheduleItem = ({ 
+    icon: Icon, 
+    label, 
+    value 
+  }: { 
+    icon: LucideIcon; 
+    label: string; 
+    value: string 
+  }) => (
+    <div className="flex items-center gap-2">
+      <Icon className="h-4 w-4 text-primary" />
+      <div className="text-sm">
+        <span className="text-muted-foreground">{label}:</span> {value}
       </div>
+    </div>
+  );
+  
+  return (
+    <div className="flex flex-col sm:flex-row sm:justify-between gap-3 p-4 bg-muted/50 rounded-lg border">
+      <ScheduleItem 
+        icon={CalendarDays} 
+        label="Learning period" 
+        value={`${duration} days`} 
+      />
+      <ScheduleItem 
+        icon={Clock} 
+        label="Total study time" 
+        value={`~${totalHours} hours`} 
+      />
     </div>
   );
 };
