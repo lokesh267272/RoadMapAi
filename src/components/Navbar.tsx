@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Brain, Calendar, Menu, X } from "lucide-react";
+import { Brain, Calendar, Menu, Target, X } from "lucide-react";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -64,6 +64,14 @@ const Navbar = () => {
           >
             Dashboard
           </Link>
+          <Link 
+            to="/dashboard?tab=progress" 
+            className={`text-foreground/80 hover:text-foreground transition-colors ${
+              location.pathname === "/dashboard" && location.search.includes("tab=progress") ? "font-medium text-foreground" : ""
+            }`}
+          >
+            Progress
+          </Link>
           {isLandingPage ? (
             <Button asChild className="animate-fadeInUp shadow-md">
               <Link to="/auth">Get Started</Link>
@@ -106,6 +114,14 @@ const Navbar = () => {
               onClick={() => setIsMenuOpen(false)}
             >
               Dashboard
+            </Link>
+            <Link
+              to="/dashboard?tab=progress"
+              className="py-2 text-foreground/80 hover:text-foreground transition-colors flex items-center gap-2"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <Target className="h-4 w-4" />
+              Progress
             </Link>
             <Button 
               asChild 

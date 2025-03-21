@@ -1,12 +1,11 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Calendar, CheckCircle, Clock, Plus, Target, Loader2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Calendar, CheckCircle, Clock, Plus, Target, Loader2, ArrowLeft } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import RoadmapGenerator from "./RoadmapGenerator";
-import CalendarView from "./calendar"; // Updated import path
+import CalendarView from "./calendar";
 import ProgressTracker from "./ProgressTracker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,16 +29,36 @@ interface Topic {
   updated_at: string;
 }
 
-const DashboardComponent = () => {
+interface DashboardProps {
+  initialTab?: string | null;
+}
+
+const DashboardComponent = ({ initialTab }: DashboardProps) => {
   const [isCreatingRoadmap, setIsCreatingRoadmap] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);
   const [topics, setTopics] = useState<Record<string, Topic[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRoadmap, setSelectedRoadmap] = useState<string | null>(null);
+  const [selectedRoadmapForProgress, setSelectedRoadmapForProgress] = useState<string | null>(null);
   const [streak, setStreak] = useState(0);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  useEffect(() => {
+    if (activeTab !== "overview") {
+      setSearchParams({ tab: activeTab });
+    } else {
+      setSearchParams({});
+    }
+  }, [activeTab, setSearchParams]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -61,7 +80,6 @@ const DashboardComponent = () => {
         
         setRoadmaps(data || []);
         
-        // Fetch topics for each roadmap
         if (data && data.length > 0) {
           const topicsData: Record<string, Topic[]> = {};
           
@@ -90,7 +108,6 @@ const DashboardComponent = () => {
     
     fetchRoadmaps();
     
-    // Set up realtime subscription for roadmaps
     const roadmapsChannel = supabase
       .channel('roadmaps_changes')
       .on('postgres_changes', 
@@ -101,13 +118,11 @@ const DashboardComponent = () => {
         }, 
         (payload) => {
           console.log('Roadmaps change received!', payload);
-          // Refresh data when changes occur
           fetchRoadmaps();
         }
       )
       .subscribe();
       
-    // Set up realtime subscription for topics
     const topicsChannel = supabase
       .channel('topics_changes')
       .on('postgres_changes', 
@@ -118,7 +133,6 @@ const DashboardComponent = () => {
         }, 
         (payload) => {
           console.log('Topics change received!', payload);
-          // Refresh data when changes occur
           fetchRoadmaps();
         }
       )
@@ -128,20 +142,17 @@ const DashboardComponent = () => {
       supabase.removeChannel(roadmapsChannel);
       supabase.removeChannel(topicsChannel);
     };
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, navigate, setSearchParams]);
 
-  // Calculate the user's current streak based on completed topics
   const calculateStreak = (topicsData: Record<string, Topic[]>) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Collect all completed topics across all roadmaps
     const allCompletedTopics: Topic[] = [];
     Object.values(topicsData).forEach(roadmapTopics => {
       allCompletedTopics.push(...roadmapTopics.filter(topic => topic.completed));
     });
     
-    // Sort by updated_at in descending order (most recent first)
     allCompletedTopics.sort((a, b) => 
       new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
     );
@@ -151,13 +162,11 @@ const DashboardComponent = () => {
       return;
     }
     
-    // Check if any topic was completed today
     const hasCompletedToday = allCompletedTopics.some(topic => 
       isToday(new Date(topic.updated_at))
     );
     
     if (!hasCompletedToday) {
-      // Check if any topic was completed yesterday
       const yesterday = subDays(today, 1);
       const hasCompletedYesterday = allCompletedTopics.some(topic => {
         const completedDate = new Date(topic.updated_at);
@@ -165,19 +174,16 @@ const DashboardComponent = () => {
         return completedDate.getTime() === yesterday.getTime();
       });
       
-      // If no completion yesterday, reset streak
       if (!hasCompletedYesterday) {
         setStreak(0);
         return;
       }
     }
     
-    // Calculate continuous streak
     let currentStreak = 0;
     let currentDate = new Date(today);
     
     while (true) {
-      // Check if there's any topic completed on this date
       const hasCompletedOnDate = allCompletedTopics.some(topic => {
         const completedDate = new Date(topic.updated_at);
         completedDate.setHours(0, 0, 0, 0);
@@ -224,20 +230,22 @@ const DashboardComponent = () => {
 
   const handleViewDetails = (roadmapId: string) => {
     setSelectedRoadmap(roadmapId);
+    setSelectedRoadmapForProgress(roadmapId);
     setActiveTab("progress");
   };
 
+  const handleBackToRoadmapList = () => {
+    setSelectedRoadmapForProgress(null);
+  };
+
   const handleContinueLearning = (roadmapId: string) => {
-    // Find the first incomplete topic
     const roadmapTopics = topics[roadmapId] || [];
     const nextTopic = roadmapTopics.find(topic => !topic.completed);
     
     if (nextTopic) {
-      // Mark the topic as viewed or show a detail view
       setSelectedRoadmap(roadmapId);
       setActiveTab("progress");
       
-      // Notify the user about the next topic
       toast.info(`Next topic: ${nextTopic.title}`);
     } else {
       toast.success("Congratulations! You've completed all topics in this roadmap.");
@@ -380,7 +388,67 @@ const DashboardComponent = () => {
         </TabsContent>
 
         <TabsContent value="progress">
-          <ProgressTracker selectedRoadmapId={selectedRoadmap} />
+          {!selectedRoadmapForProgress ? (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-semibold">Select a Roadmap</h2>
+              <p className="text-muted-foreground">Choose a roadmap to view detailed progress information</p>
+              
+              {roadmaps.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {roadmaps.map((roadmap) => (
+                    <Card key={roadmap.id} className="bg-glass overflow-hidden card-hover">
+                      <CardContent className="p-6">
+                        <h3 className="text-xl font-semibold mb-2">{roadmap.title}</h3>
+                        <div className="flex items-center text-muted-foreground mb-4">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          <span>Next: {getNextTopic(roadmap.id)}</span>
+                        </div>
+                        
+                        <div className="mb-2 flex justify-between text-sm">
+                          <span>Progress</span>
+                          <span className="font-medium">{calculateProgress(roadmap.id)}%</span>
+                        </div>
+                        
+                        <div className="w-full bg-muted rounded-full h-2 mb-4">
+                          <div
+                            className="bg-primary rounded-full h-2 transition-all duration-500"
+                            style={{ width: `${calculateProgress(roadmap.id)}%` }}
+                          ></div>
+                        </div>
+                        
+                        <div className="flex justify-center mt-4">
+                          <Button onClick={() => handleViewDetails(roadmap.id)}>
+                            View Details
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-glass rounded-lg p-8 text-center">
+                  <h3 className="text-xl font-medium mb-2">No roadmaps yet</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Create your first learning roadmap to get started
+                  </p>
+                  <Button onClick={handleCreateRoadmap}>
+                    <Plus className="mr-2 h-4 w-4" /> Create Roadmap
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              <Button 
+                variant="outline" 
+                className="mb-6"
+                onClick={handleBackToRoadmapList}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back to Roadmaps
+              </Button>
+              <ProgressTracker selectedRoadmapId={selectedRoadmapForProgress} />
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="create">
