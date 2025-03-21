@@ -144,6 +144,10 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
   // Helper function to process hierarchical topics
   const processTopics = async (topics: Node[], roadmapId: string, parentId: string | null = null) => {
     for (const topic of topics) {
+      // Convert resources to a format compatible with the database JSON type
+      const processedResources = topic.resources ? JSON.stringify(topic.resources) : null;
+      const processedPosition = topic.position ? JSON.stringify(topic.position) : null;
+      
       // Insert the current topic
       const { data: insertedTopic, error } = await supabase
         .from('learning_topics')
@@ -154,8 +158,8 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
           day_number: topic.day || 1,
           completed: false,
           parent_topic_id: parentId,
-          resources: topic.resources || [],
-          node_position: topic.position || null
+          resources: processedResources,
+          node_position: processedPosition
         })
         .select()
         .single();

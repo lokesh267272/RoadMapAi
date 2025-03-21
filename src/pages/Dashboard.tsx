@@ -20,7 +20,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen w-full pt-16 pb-8">
-      <DashboardComponent initialTab={tabParam} />
+      <DashboardComponent />
     </div>
   );
 };

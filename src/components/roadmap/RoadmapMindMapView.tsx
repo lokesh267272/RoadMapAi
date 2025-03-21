@@ -1,13 +1,12 @@
 
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, LayoutDashboard, CalendarDays } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { ChevronLeft, Loader2 } from "lucide-react";
 import { MindMap } from "@/components/mindmap";
 import { Node, RoadmapMindMapData } from "@/components/mindmap/types";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface RoadmapMindMapViewProps {
   roadmapId: string;
@@ -15,180 +14,110 @@ interface RoadmapMindMapViewProps {
   onBack: () => void;
 }
 
-const RoadmapMindMapView: React.FC<RoadmapMindMapViewProps> = ({
-  roadmapId,
-  roadmapTitle,
-  onBack
-}) => {
-  const [mindMapData, setMindMapData] = useState<Node | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeView, setActiveView] = useState<"mindmap" | "calendar">("mindmap");
-
-  useEffect(() => {
-    const fetchMindMapData = async () => {
-      setIsLoading(true);
-      try {
-        // Fetch the roadmap to get the mind map data
-        const { data: roadmapData, error: roadmapError } = await supabase
-          .from('learning_roadmaps')
-          .select('mind_map_data')
-          .eq('id', roadmapId)
-          .single();
-        
-        if (roadmapError) throw roadmapError;
-        
-        // Fetch all topics for this roadmap
-        const { data: topicsData, error: topicsError } = await supabase
-          .from('learning_topics')
-          .select('*')
-          .eq('roadmap_id', roadmapId);
-        
-        if (topicsError) throw topicsError;
-        
-        if (roadmapData?.mind_map_data) {
-          // If we have mind map data, use it
-          const mapData = roadmapData.mind_map_data as RoadmapMindMapData;
-          
-          // Update completion status from database
-          const updateCompletionStatus = (nodes: Node[]): Node[] => {
-            return nodes.map(node => {
-              const topic = topicsData.find(t => t.title === node.topic);
-              const updatedNode = {
-                ...node,
-                completed: topic ? topic.completed : false,
-                id: topic ? topic.id : node.id
-              };
-              
-              if (node.children && node.children.length > 0) {
-                updatedNode.children = updateCompletionStatus(node.children);
-              }
-              
-              return updatedNode;
-            });
-          };
-          
-          if (mapData.topics && mapData.topics.length > 0) {
-            // Create a root node for the mind map
-            const rootNode: Node = {
-              id: "root",
-              topic: mapData.title,
-              content: "Learning roadmap overview",
-              children: updateCompletionStatus(mapData.topics)
-            };
-            
-            setMindMapData(rootNode);
-          }
-        } else if (topicsData.length > 0) {
-          // If no mind map data, create a basic structure from topics
-          const rootTopics = topicsData.filter(t => !t.parent_topic_id);
-          
-          // Convert flat list to hierarchical structure
-          const buildTree = (topics: any[], parentId: string | null = null): Node[] => {
-            const children = topics.filter(t => t.parent_topic_id === parentId);
-            
-            return children.map(child => ({
-              id: child.id,
-              topic: child.title,
-              content: child.description || "",
-              day: child.day_number,
-              completed: child.completed,
-              resources: child.resources || [],
-              children: buildTree(topics, child.id)
-            }));
-          };
-          
-          // Create a root node
-          const rootNode: Node = {
-            id: "root",
-            topic: roadmapTitle,
-            content: "Learning roadmap overview",
-            children: buildTree(topicsData)
-          };
-          
-          setMindMapData(rootNode);
-        }
-      } catch (error) {
+const RoadmapMindMapView = ({ roadmapId, roadmapTitle, onBack }: RoadmapMindMapViewProps) => {
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  
+  const { data: mindMapData, isLoading } = useQuery({
+    queryKey: ["roadmap-mindmap", roadmapId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("learning_roadmaps")
+        .select("mind_map_data")
+        .eq("id", roadmapId)
+        .single();
+      
+      if (error) {
         console.error("Error fetching mind map data:", error);
         toast.error("Failed to load mind map data");
-      } finally {
-        setIsLoading(false);
+        throw error;
       }
-    };
-    
-    fetchMindMapData();
-  }, [roadmapId, roadmapTitle]);
-
-  const handleNodeComplete = async (nodeId: string, completed: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('learning_topics')
-        .update({ completed })
-        .eq('id', nodeId);
       
-      if (error) throw error;
-      
-      toast.success(`Topic marked as ${completed ? "completed" : "incomplete"}`);
-    } catch (error) {
-      console.error("Error updating topic completion:", error);
-      toast.error("Failed to update topic status");
+      return data?.mind_map_data as RoadmapMindMapData | null;
     }
+  });
+
+  const handleNodeClick = (node: Node) => {
+    setSelectedNode(node);
+  };
+
+  const processMindMapData = (data: RoadmapMindMapData | null): Node[] => {
+    if (!data || !data.topics) return [];
+    return data.topics;
   };
 
   return (
-    <div className="space-y-4 animate-fadeIn">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={onBack} className="gap-1">
-          <ChevronLeft className="h-4 w-4" />
-          Back to Roadmaps
-        </Button>
-        
-        <Tabs value={activeView} onValueChange={(value) => setActiveView(value as "mindmap" | "calendar")}>
-          <TabsList className="grid w-[200px] grid-cols-2">
-            <TabsTrigger value="mindmap" className="flex items-center gap-1">
-              <LayoutDashboard className="h-4 w-4" />
-              Mind Map
-            </TabsTrigger>
-            <TabsTrigger value="calendar" className="flex items-center gap-1">
-              <CalendarDays className="h-4 w-4" />
-              Calendar
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={onBack}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h2 className="text-2xl font-semibold">{roadmapTitle} - Mind Map</h2>
+        </div>
       </div>
       
-      <Card className="bg-glass shadow">
-        <CardHeader>
-          <CardTitle>{roadmapTitle}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[60vh]">
-            {activeView === "mindmap" ? (
-              isLoading ? (
-                <div className="h-full flex items-center justify-center">
-                  <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full"></div>
-                </div>
-              ) : mindMapData ? (
-                <MindMap 
-                  data={mindMapData} 
-                  onNodeComplete={handleNodeComplete}
-                  className="h-full"
-                />
-              ) : (
-                <div className="h-full flex items-center justify-center text-muted-foreground">
-                  No mind map data available for this roadmap
-                </div>
-              )
-            ) : (
-              <div className="h-full flex items-center justify-center">
-                {/* Calendar view will be integrated here */}
-                <p className="text-muted-foreground">
-                  Switch to the Dashboard view to see the calendar
-                </p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="md:col-span-2 bg-card rounded-lg border shadow-sm h-[600px]">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : mindMapData ? (
+            <MindMap 
+              data={processMindMapData(mindMapData)} 
+              width={800} 
+              height={600} 
+              onNodeClick={handleNodeClick}
+              selectedNodeId={selectedNode?.id}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-muted-foreground">No mind map data available</p>
+            </div>
+          )}
+        </div>
+        
+        <div className="bg-card rounded-lg border shadow-sm p-4">
+          <h3 className="text-lg font-semibold mb-4">
+            {selectedNode ? selectedNode.topic : "Node Details"}
+          </h3>
+          
+          {selectedNode ? (
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Content</h4>
+                <p>{selectedNode.content}</p>
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              
+              {selectedNode.resources && selectedNode.resources.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Resources</h4>
+                  <ul className="space-y-2">
+                    {selectedNode.resources.map((resource, index) => (
+                      <li key={index}>
+                        <a 
+                          href={resource.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-primary hover:underline flex items-center gap-1"
+                        >
+                          {resource.title || resource.url}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              <Button variant="outline" className="w-full">
+                {selectedNode.completed ? "Mark as Incomplete" : "Mark as Complete"}
+              </Button>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">Select a node to view details</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

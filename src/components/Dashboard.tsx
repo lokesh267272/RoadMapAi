@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -9,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { RoadmapCard } from "./RoadmapCard";
 import { RoadmapSkeleton } from "./RoadmapSkeleton";
 import { EmptyState } from "./EmptyState";
+import { Card, CardContent } from "@/components/ui/card";
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { Tables } from "@/integrations/supabase/types";
 import RoadmapDetailView from "./roadmap/RoadmapDetailView";
@@ -68,8 +70,8 @@ export default function Dashboard() {
     }
   }, [user]);
 
-  const deleteRoadmapMutation = useMutation(
-    async (id: string) => {
+  const deleteRoadmapMutation = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('learning_roadmaps')
         .delete()
@@ -80,18 +82,18 @@ export default function Dashboard() {
         throw new Error("Failed to delete roadmap.");
       }
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['learning_roadmaps']);
-        setRoadmaps(roadmaps.filter(roadmap => roadmap.id !== roadmapToDelete?.id));
-        setRoadmapToDelete(null);
-        toast.success("Roadmap deleted successfully!");
-      },
-      onError: (error: any) => {
-        toast.error(error.message || "Failed to delete roadmap.");
-      },
-    }
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['learning_roadmaps'] });
+      if (roadmapToDelete) {
+        setRoadmaps(roadmaps.filter(roadmap => roadmap.id !== roadmapToDelete.id));
+      }
+      setRoadmapToDelete(null);
+      toast.success("Roadmap deleted successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to delete roadmap.");
+    },
+  });
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -218,14 +220,14 @@ export default function Dashboard() {
           </AlertDialogHeader>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
-            disabled={deleteRoadmapMutation.isLoading}
+            disabled={deleteRoadmapMutation.isPending}
             onClick={() => {
               if (roadmapToDelete) {
                 deleteRoadmapMutation.mutate(roadmapToDelete.id);
               }
             }}
           >
-            {deleteRoadmapMutation.isLoading ? (
+            {deleteRoadmapMutation.isPending ? (
               <>Deleting...</>
             ) : (
               <>Delete</>
