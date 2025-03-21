@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { RoadmapMindMapData, Node } from '@/components/mindmap/types';
 
 export interface RoadmapFormData {
   learningGoal: string;
@@ -67,7 +68,8 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
             user_id: userId,
             title: aiData.roadmap.title || learningGoal,
             description: description,
-            duration_days: duration[0]
+            duration_days: duration[0],
+            mind_map_data: aiData.roadmap
           })
           .select()
           .single();
@@ -80,26 +82,8 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
         setGenerationProgress(80);
         console.log("Created roadmap:", roadmap);
         
-        // Generate topics from AI response
-        const topics = aiData.roadmap.topics.map((topic: any, index: number) => ({
-          roadmap_id: roadmap.id,
-          title: topic.topic,
-          description: topic.content,
-          day_number: topic.day || index + 1,
-          completed: false
-        }));
-        
-        console.log("Inserting topics:", topics);
-        
-        // Insert topics
-        const { error: topicsError } = await supabase
-          .from('learning_topics')
-          .insert(topics);
-        
-        if (topicsError) {
-          console.error("Topics insertion error:", topicsError);
-          throw topicsError;
-        }
+        // Process the hierarchical data to generate topics
+        await processTopics(aiData.roadmap.topics, roadmap.id);
         
         setGenerationProgress(100);
         toast.success("AI-generated roadmap created successfully!");
@@ -154,6 +138,37 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
     } finally {
       setIsLoading(false);
       setGenerationProgress(0);
+    }
+  };
+
+  // Helper function to process hierarchical topics
+  const processTopics = async (topics: Node[], roadmapId: string, parentId: string | null = null) => {
+    for (const topic of topics) {
+      // Insert the current topic
+      const { data: insertedTopic, error } = await supabase
+        .from('learning_topics')
+        .insert({
+          roadmap_id: roadmapId,
+          title: topic.topic,
+          description: topic.content,
+          day_number: topic.day || 1,
+          completed: false,
+          parent_topic_id: parentId,
+          resources: topic.resources || [],
+          node_position: topic.position || null
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error("Error inserting topic:", error);
+        throw error;
+      }
+      
+      // Process children if any
+      if (topic.children && topic.children.length > 0) {
+        await processTopics(topic.children, roadmapId, insertedTopic.id);
+      }
     }
   };
 
