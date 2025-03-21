@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Calendar, CheckCircle, Clock, Plus, Target, Loader2, ArrowLeft } from "lucide-react";
+import { Calendar, CheckCircle, Clock, Plus, Target, Loader2, ArrowLeft, Trash2 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import RoadmapGenerator from "./RoadmapGenerator";
 import CalendarView from "./calendar";
@@ -11,6 +11,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { isToday, subDays, isBefore, isAfter, formatDistance } from "date-fns";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface Roadmap {
   id: string;
@@ -45,6 +53,8 @@ const DashboardComponent = ({ initialTab }: DashboardProps) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
+  const [roadmapToDelete, setRoadmapToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (initialTab) {
@@ -252,6 +262,56 @@ const DashboardComponent = ({ initialTab }: DashboardProps) => {
     }
   };
 
+  const handleDeleteClick = (roadmapId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRoadmapToDelete(roadmapId);
+  };
+
+  const confirmDelete = async () => {
+    if (!roadmapToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const { error: topicsError } = await supabase
+        .from('learning_topics')
+        .delete()
+        .eq('roadmap_id', roadmapToDelete);
+      
+      if (topicsError) throw topicsError;
+      
+      const { error: roadmapError } = await supabase
+        .from('learning_roadmaps')
+        .delete()
+        .eq('id', roadmapToDelete);
+      
+      if (roadmapError) throw roadmapError;
+      
+      toast.success("Roadmap deleted successfully");
+      setRoadmapToDelete(null);
+      
+      setRoadmaps(prevRoadmaps => 
+        prevRoadmaps.filter(roadmap => roadmap.id !== roadmapToDelete)
+      );
+      
+      if (selectedRoadmap === roadmapToDelete) {
+        setSelectedRoadmap(null);
+      }
+      
+      if (selectedRoadmapForProgress === roadmapToDelete) {
+        setSelectedRoadmapForProgress(null);
+      }
+    } catch (error: any) {
+      console.error("Error deleting roadmap:", error);
+      toast.error("Failed to delete roadmap: " + error.message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setRoadmapToDelete(null);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -259,6 +319,56 @@ const DashboardComponent = ({ initialTab }: DashboardProps) => {
       </div>
     );
   }
+
+  const renderRoadmapCard = (roadmap: Roadmap) => (
+    <Card key={roadmap.id} className="bg-glass overflow-hidden card-hover">
+      <CardContent className="p-6">
+        <div className="flex justify-between items-start mb-2">
+          <h3 className="text-xl font-semibold">{roadmap.title}</h3>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            onClick={(e) => handleDeleteClick(roadmap.id, e)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="flex items-center text-muted-foreground mb-4">
+          <Calendar className="h-4 w-4 mr-2" />
+          <span>Next: {getNextTopic(roadmap.id)}</span>
+        </div>
+        
+        <div className="mb-2 flex justify-between text-sm">
+          <span>Progress</span>
+          <span className="font-medium">{calculateProgress(roadmap.id)}%</span>
+        </div>
+        
+        <div className="w-full bg-muted rounded-full h-2 mb-4">
+          <div
+            className="bg-primary rounded-full h-2 transition-all duration-500"
+            style={{ width: `${calculateProgress(roadmap.id)}%` }}
+          ></div>
+        </div>
+        
+        <div className="flex justify-between mt-4">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => handleViewDetails(roadmap.id)}
+          >
+            View Details
+          </Button>
+          <Button 
+            size="sm"
+            onClick={() => handleContinueLearning(roadmap.id)}
+          >
+            Continue Learning
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="container mx-auto px-4 py-8 animate-fadeInUp">
@@ -330,45 +440,7 @@ const DashboardComponent = ({ initialTab }: DashboardProps) => {
           
           {roadmaps.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {roadmaps.map((roadmap) => (
-                <Card key={roadmap.id} className="bg-glass overflow-hidden card-hover">
-                  <CardContent className="p-6">
-                    <h3 className="text-xl font-semibold mb-2">{roadmap.title}</h3>
-                    <div className="flex items-center text-muted-foreground mb-4">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      <span>Next: {getNextTopic(roadmap.id)}</span>
-                    </div>
-                    
-                    <div className="mb-2 flex justify-between text-sm">
-                      <span>Progress</span>
-                      <span className="font-medium">{calculateProgress(roadmap.id)}%</span>
-                    </div>
-                    
-                    <div className="w-full bg-muted rounded-full h-2 mb-4">
-                      <div
-                        className="bg-primary rounded-full h-2 transition-all duration-500"
-                        style={{ width: `${calculateProgress(roadmap.id)}%` }}
-                      ></div>
-                    </div>
-                    
-                    <div className="flex justify-between mt-4">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleViewDetails(roadmap.id)}
-                      >
-                        View Details
-                      </Button>
-                      <Button 
-                        size="sm"
-                        onClick={() => handleContinueLearning(roadmap.id)}
-                      >
-                        Continue Learning
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              {roadmaps.map(roadmap => renderRoadmapCard(roadmap))}
             </div>
           ) : (
             <div className="bg-glass rounded-lg p-8 text-center">
@@ -395,35 +467,7 @@ const DashboardComponent = ({ initialTab }: DashboardProps) => {
               
               {roadmaps.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {roadmaps.map((roadmap) => (
-                    <Card key={roadmap.id} className="bg-glass overflow-hidden card-hover">
-                      <CardContent className="p-6">
-                        <h3 className="text-xl font-semibold mb-2">{roadmap.title}</h3>
-                        <div className="flex items-center text-muted-foreground mb-4">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          <span>Next: {getNextTopic(roadmap.id)}</span>
-                        </div>
-                        
-                        <div className="mb-2 flex justify-between text-sm">
-                          <span>Progress</span>
-                          <span className="font-medium">{calculateProgress(roadmap.id)}%</span>
-                        </div>
-                        
-                        <div className="w-full bg-muted rounded-full h-2 mb-4">
-                          <div
-                            className="bg-primary rounded-full h-2 transition-all duration-500"
-                            style={{ width: `${calculateProgress(roadmap.id)}%` }}
-                          ></div>
-                        </div>
-                        
-                        <div className="flex justify-center mt-4">
-                          <Button onClick={() => handleViewDetails(roadmap.id)}>
-                            View Details
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {roadmaps.map(roadmap => renderRoadmapCard(roadmap))}
                 </div>
               ) : (
                 <div className="bg-glass rounded-lg p-8 text-center">
@@ -455,6 +499,32 @@ const DashboardComponent = ({ initialTab }: DashboardProps) => {
           <RoadmapGenerator />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={roadmapToDelete !== null} onOpenChange={(open) => !open && cancelDelete()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Roadmap</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this roadmap? This action cannot be undone, and all topics and progress will be permanently deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-row justify-between sm:justify-between gap-2">
+            <Button variant="outline" onClick={cancelDelete} disabled={isDeleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={isDeleting}>
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Roadmap"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
