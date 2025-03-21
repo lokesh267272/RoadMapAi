@@ -44,7 +44,8 @@ const RoadmapMindMapView = ({ roadmapId, roadmapTitle, onBack }: RoadmapMindMapV
       // Validate the structure before casting
       if (typeof jsonData === 'object' && jsonData !== null && 
           'topics' in jsonData && Array.isArray(jsonData.topics)) {
-        return jsonData as RoadmapMindMapData;
+        // Use type assertion with unknown as intermediate step
+        return jsonData as unknown as RoadmapMindMapData;
       }
       
       console.error("Invalid mind map data structure:", jsonData);
