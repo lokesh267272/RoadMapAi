@@ -7,6 +7,7 @@ import { Node, RoadmapMindMapData } from "@/components/mindmap/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Json } from "@/integrations/supabase/types";
 
 interface RoadmapMindMapViewProps {
   roadmapId: string;
@@ -32,12 +33,45 @@ const RoadmapMindMapView = ({ roadmapId, roadmapTitle, onBack }: RoadmapMindMapV
         throw error;
       }
       
-      return data?.mind_map_data as RoadmapMindMapData | null;
+      // Safely handle the JSON data with type validation
+      if (!data?.mind_map_data) {
+        return null;
+      }
+      
+      // Check if mind_map_data has the expected structure
+      const jsonData = data.mind_map_data as Json;
+      
+      // Validate the structure before casting
+      if (typeof jsonData === 'object' && jsonData !== null && 
+          'topics' in jsonData && Array.isArray(jsonData.topics)) {
+        return jsonData as RoadmapMindMapData;
+      }
+      
+      console.error("Invalid mind map data structure:", jsonData);
+      toast.error("Mind map data has invalid format");
+      return null;
     }
   });
 
   const handleNodeClick = (node: Node) => {
     setSelectedNode(node);
+  };
+
+  const handleToggleNodeStatus = () => {
+    if (!selectedNode) return;
+    
+    // Create a new version of the node with updated status
+    const updatedNode = {
+      ...selectedNode,
+      completed: !selectedNode.completed
+    };
+    
+    // Update the selectedNode with the new status
+    setSelectedNode(updatedNode);
+    
+    // Here you would typically persist this change to the database
+    // This is a placeholder for that functionality
+    console.log("Toggle status for node:", selectedNode.id, "to", !selectedNode.completed);
   };
 
   const processMindMapData = (data: RoadmapMindMapData | null): Node[] => {
@@ -109,7 +143,11 @@ const RoadmapMindMapView = ({ roadmapId, roadmapTitle, onBack }: RoadmapMindMapV
                 </div>
               )}
               
-              <Button variant="outline" className="w-full">
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={handleToggleNodeStatus}
+              >
                 {selectedNode.completed ? "Mark as Incomplete" : "Mark as Complete"}
               </Button>
             </div>
