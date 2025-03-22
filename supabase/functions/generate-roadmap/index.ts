@@ -36,48 +36,22 @@ serve(async (req) => {
         "title": "A descriptive title for the roadmap",
         "topics": [
           {
-            "id": "unique_id_1",
             "day": 1,
-            "topic": "Main topic title for day 1",
-            "content": "Detailed description of what to learn on day 1",
-            "resources": [
-              {"type": "Article", "title": "Resource title", "url": "URL to resource"},
-              {"type": "Video", "title": "Video title", "url": "URL to video"}
-            ],
-            "children": [
-              {
-                "id": "unique_id_2",
-                "topic": "Subtopic 1",
-                "content": "Details about this subtopic"
-              },
-              {
-                "id": "unique_id_3",
-                "topic": "Subtopic 2",
-                "content": "Details about this subtopic"
-              }
-            ]
+            "topic": "Topic title for day 1",
+            "content": "Detailed description of what to learn on day 1"
           },
           {
-            "id": "unique_id_4",
             "day": 2,
-            "topic": "Main topic title for day 2",
-            "content": "Detailed description of what to learn on day 2",
-            "resources": [
-              {"type": "Article", "title": "Resource title", "url": "URL to resource"}
-            ],
-            "children": []
+            "topic": "Topic title for day 2",
+            "content": "Detailed description of what to learn on day 2"
           },
-          ... and so on for each day
+          ...and so on for each day
         ]
       }
       
-      Use "unique_id_X" placeholders for now as I'll replace them with actual UUIDs.
-      Each topic should have a clear main concept with relevant subtopics as children.
-      Add 2-3 relevant high-quality learning resources per topic (articles, videos, documentation links, etc.).
+      Do not include any explanations, markdown, or text outside of the JSON structure.
       Ensure each day has a clear learning objective that builds on previous days.
       The roadmap should be comprehensive, practical, and follow a logical progression.
-      
-      Do not include any explanations, markdown, or text outside of the JSON structure.
     `;
 
     console.log("Sending request to Gemini API...");
