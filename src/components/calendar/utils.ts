@@ -8,20 +8,22 @@ export const distributeTopicsToCalendar = (topics: Topic[], startDate = new Date
   const sortedTopics = [...topics].sort((a, b) => a.day_number - b.day_number);
   const today = new Date();
   
-  // Find the earliest topic's day number to calculate the true start date
-  // This preserves the original start date based on the first day_number
+  // Only proceed if we have topics to distribute
   if (sortedTopics.length > 0) {
-    const firstTopicDayNumber = sortedTopics[0].day_number;
-    const lastCreatedTopic = sortedTopics.reduce((latest, current) => {
-      return new Date(latest.created_at) > new Date(current.created_at) ? latest : current;
-    }, sortedTopics[0]);
+    // Find the roadmap id from the first topic
+    const roadmapId = sortedTopics[0].roadmap_id;
     
-    // Calculate the original start date by subtracting days from the creation date
-    const originalStartDate = new Date(lastCreatedTopic.created_at);
-    originalStartDate.setDate(originalStartDate.getDate() - (lastCreatedTopic.day_number - 1));
+    // Find the earliest topic by day_number (should be day 1)
+    const earliestTopic = sortedTopics[0];
     
-    // Use the calculated original start date instead of the current date
+    // Calculate the original start date of the roadmap using the earliest topic's creation date
+    // We subtract (day_number - 1) days to get back to day 1
+    const originalStartDate = new Date(earliestTopic.created_at);
+    originalStartDate.setDate(originalStartDate.getDate() - (earliestTopic.day_number - 1));
+    
+    // Use this fixed original start date for all topics
     sortedTopics.forEach((topic) => {
+      // Calculate each topic's date based on its day number and the original start date
       const topicDate = new Date(originalStartDate);
       topicDate.setDate(originalStartDate.getDate() + (topic.day_number - 1));
       
