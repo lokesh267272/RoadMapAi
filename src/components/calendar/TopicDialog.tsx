@@ -1,6 +1,6 @@
 
-import React, { useState } from "react";
-import { format, isBefore, isToday } from "date-fns"; // Added the missing imports
+import React, { memo } from "react";
+import { format, isBefore, isToday } from "date-fns";
 import { CalendarIcon, Edit, ArrowRight, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { CalendarEvent } from "./types";
 import { getStatusColor } from "./utils";
@@ -45,7 +45,8 @@ interface TopicDialogProps {
   toggleDescription: (id: string) => void;
 }
 
-const TopicDialog: React.FC<TopicDialogProps> = ({
+// Use memo to prevent unnecessary re-renders
+const TopicDialog: React.FC<TopicDialogProps> = memo(({
   open,
   onOpenChange,
   selectedDate,
@@ -80,6 +81,30 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
     setEditTopicId(topic.id);
     setRescheduleMode(true);
     setRescheduleDate(undefined);
+  };
+
+  // Generate TopicEventItem components only when needed
+  const renderTopicItems = () => {
+    if (selectedDateEvents.length === 0) {
+      return (
+        <div className="text-center py-6 text-muted-foreground">
+          No learning topics scheduled for this date
+        </div>
+      );
+    }
+
+    return selectedDateEvents.map((event) => (
+      <TopicEventItem 
+        key={event.id}
+        event={event}
+        isUpdating={isUpdating}
+        expandedDescriptions={expandedDescriptions}
+        toggleDescription={toggleDescription}
+        handleToggleComplete={handleToggleComplete}
+        handleEditClick={handleEditClick}
+        handleRescheduleClick={handleRescheduleClick}
+      />
+    ));
   };
 
   return (
@@ -178,93 +203,113 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
               </Button>
             </DialogFooter>
           </div>
-        ) : selectedDateEvents.length > 0 ? (
-          <div className="space-y-4 py-4">
-            {selectedDateEvents.map((event) => (
-              <div key={event.id} className={cn(
-                "border rounded-lg overflow-hidden transition-colors",
-                getStatusColor(event.status)
-              )}>
-                <div className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <h3 className="font-medium text-base">{event.title}</h3>
-                      {event.description && !expandedDescriptions[event.id] && (
-                        <p className="text-sm line-clamp-2">{event.description}</p>
-                      )}
-                    </div>
-                    
-                    <Checkbox
-                      checked={event.completed}
-                      onCheckedChange={() => handleToggleComplete(event.id, event.completed)}
-                      className={cn(
-                        "h-5 w-5",
-                        event.completed && "text-green-500 border-green-500",
-                        !event.completed && "text-amber-500 border-amber-500"
-                      )}
-                      disabled={isUpdating}
-                    />
-                  </div>
-                  
-                  {event.description && event.description.length > 100 && (
-                    <Collapsible 
-                      open={expandedDescriptions[event.id]} 
-                      onOpenChange={() => toggleDescription(event.id)}
-                      className="mt-2"
-                    >
-                      <CollapsibleContent className="text-sm mt-2">
-                        {event.description}
-                      </CollapsibleContent>
-                      
-                      <CollapsibleTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="mt-1 h-auto p-0 text-xs font-medium"
-                        >
-                          {expandedDescriptions[event.id] ? (
-                            <ChevronUp className="h-3 w-3 mr-1" />
-                          ) : (
-                            <ChevronDown className="h-3 w-3 mr-1" />
-                          )}
-                          {expandedDescriptions[event.id] ? "Show Less" : "Read More"}
-                        </Button>
-                      </CollapsibleTrigger>
-                    </Collapsible>
-                  )}
-                </div>
-                
-                <div className="flex items-center justify-end space-x-2 px-4 py-3 bg-background/10 border-t">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEditClick(event)}
-                    className="text-xs"
-                  >
-                    <Edit className="mr-1 h-3 w-3" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleRescheduleClick(event)}
-                    className="text-xs"
-                  >
-                    <ArrowRight className="mr-1 h-3 w-3" />
-                    Reschedule
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
         ) : (
-          <div className="text-center py-6 text-muted-foreground">
-            No learning topics scheduled for this date
+          <div className="space-y-4 py-4">
+            {renderTopicItems()}
           </div>
         )}
       </DialogContent>
     </Dialog>
   );
-};
+});
+
+// Split out the TopicEventItem to a separate component to reduce rerenders
+const TopicEventItem = memo(({
+  event,
+  isUpdating,
+  expandedDescriptions,
+  toggleDescription,
+  handleToggleComplete,
+  handleEditClick,
+  handleRescheduleClick
+}: {
+  event: CalendarEvent;
+  isUpdating: boolean;
+  expandedDescriptions: Record<string, boolean>;
+  toggleDescription: (id: string) => void;
+  handleToggleComplete: (topicId: string, currentStatus: boolean) => Promise<void>;
+  handleEditClick: (event: CalendarEvent) => void;
+  handleRescheduleClick: (event: CalendarEvent) => void;
+}) => {
+  return (
+    <div className={cn(
+      "border rounded-lg overflow-hidden transition-colors",
+      getStatusColor(event.status)
+    )}>
+      <div className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <h3 className="font-medium text-base">{event.title}</h3>
+            {event.description && !expandedDescriptions[event.id] && (
+              <p className="text-sm line-clamp-2">{event.description}</p>
+            )}
+          </div>
+          
+          <Checkbox
+            checked={event.completed}
+            onCheckedChange={() => handleToggleComplete(event.id, event.completed)}
+            className={cn(
+              "h-5 w-5 cursor-pointer",
+              event.completed && "text-green-500 border-green-500",
+              !event.completed && "text-amber-500 border-amber-500"
+            )}
+            disabled={isUpdating}
+          />
+        </div>
+        
+        {event.description && event.description.length > 100 && (
+          <Collapsible 
+            open={expandedDescriptions[event.id]} 
+            onOpenChange={() => toggleDescription(event.id)}
+            className="mt-2"
+          >
+            <CollapsibleContent className="text-sm mt-2">
+              {event.description}
+            </CollapsibleContent>
+            
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="mt-1 h-auto p-0 text-xs font-medium cursor-pointer"
+              >
+                {expandedDescriptions[event.id] ? (
+                  <ChevronUp className="h-3 w-3 mr-1" />
+                ) : (
+                  <ChevronDown className="h-3 w-3 mr-1" />
+                )}
+                {expandedDescriptions[event.id] ? "Show Less" : "Read More"}
+              </Button>
+            </CollapsibleTrigger>
+          </Collapsible>
+        )}
+      </div>
+      
+      <div className="flex items-center justify-end space-x-2 px-4 py-3 bg-background/10 border-t">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handleEditClick(event)}
+          className="text-xs cursor-pointer"
+        >
+          <Edit className="mr-1 h-3 w-3" />
+          Edit
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handleRescheduleClick(event)}
+          className="text-xs cursor-pointer"
+        >
+          <ArrowRight className="mr-1 h-3 w-3" />
+          Reschedule
+        </Button>
+      </div>
+    </div>
+  );
+});
+
+TopicDialog.displayName = "TopicDialog";
+TopicEventItem.displayName = "TopicEventItem";
 
 export default TopicDialog;
