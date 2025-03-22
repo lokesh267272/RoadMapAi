@@ -4,12 +4,10 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CalendarEvent } from "./types";
 
-interface TopicManagerProps {
-  calendarEvents: CalendarEvent[];
-  setCalendarEvents: React.Dispatch<React.SetStateAction<CalendarEvent[]>>;
-}
-
-const TopicManager: React.FC<TopicManagerProps> = ({ calendarEvents, setCalendarEvents }) => {
+export const useTopicManager = (
+  calendarEvents: CalendarEvent[],
+  setCalendarEvents: React.Dispatch<React.SetStateAction<CalendarEvent[]>>
+) => {
   const [isUpdating, setIsUpdating] = React.useState(false);
 
   const handleToggleComplete = async (topicId: string, currentStatus: boolean) => {
@@ -133,5 +131,3 @@ const TopicManager: React.FC<TopicManagerProps> = ({ calendarEvents, setCalendar
     handleReschedule
   };
 };
-
-export default TopicManager;

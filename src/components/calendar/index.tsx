@@ -9,7 +9,7 @@ import CalendarStats from "./CalendarStats";
 import { CalendarEvent, CalendarViewProps } from "./types";
 import useCalendarStats from "./useCalendarStats";
 import useTopicDialog from "./useTopicDialog";
-import TopicManager from "./TopicManager";
+import { useTopicManager } from "./useTopicManager";
 
 const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
@@ -25,9 +25,9 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     expandedDescriptions, toggleDescription, handleDayClick, getSelectedDateEvents
   } = dialogState;
   
-  // Get topic management functions
-  const topicManager = TopicManager({ calendarEvents, setCalendarEvents });
-  const { isUpdating, handleToggleComplete, handleSaveEdit, handleReschedule } = topicManager;
+  // Use the new topic manager hook
+  const { isUpdating, handleToggleComplete, handleSaveEdit, handleReschedule } = 
+    useTopicManager(calendarEvents, setCalendarEvents);
 
   // Get events for the selected date
   const selectedDateEvents = getSelectedDateEvents(calendarEvents);
