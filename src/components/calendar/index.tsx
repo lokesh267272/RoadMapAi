@@ -11,12 +11,10 @@ import CalendarStats from "./CalendarStats";
 import { Topic, CalendarViewProps, CalendarEvent } from "./types";
 
 const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
-  const [date, setDate] = useState<Date>(new Date());
-  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [editMode, setEditMode] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -35,14 +33,17 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
   };
 
   useEffect(() => {
+    // Calculate statistics only when we have events
+    if (calendarEvents.length === 0) return;
+    
     const allEvents = [...calendarEvents];
     const today = new Date();
     
-    if (allEvents.length > 0) {
-      const completedCount = allEvents.filter(event => event.completed).length;
-      setCompletionRate(Math.round((completedCount / allEvents.length) * 100));
-    }
+    // Calculate completion rate
+    const completedCount = allEvents.filter(event => event.completed).length;
+    setCompletionRate(Math.round((completedCount / allEvents.length) * 100));
     
+    // Calculate streak
     let currentStreak = 0;
     const sortedDates = [...allEvents]
       .filter(event => isBefore(event.date, today) || isSameDay(event.date, today))
@@ -62,15 +63,28 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
   useEffect(() => {
     const allEvents: CalendarEvent[] = [];
     
+    // Distribute topics to calendar events based on selected roadmap or all roadmaps
     if (selectedRoadmapId && topics[selectedRoadmapId]) {
       const roadmapTopics = topics[selectedRoadmapId];
+      console.log(`Processing ${roadmapTopics.length} topics for roadmap ${selectedRoadmapId}`);
+      
+      // Verify topic data before processing
+      if (roadmapTopics.length > 0) {
+        console.log("First topic sample:", roadmapTopics[0]);
+        if (!roadmapTopics[0].created_at) {
+          console.warn("Warning: Topics missing created_at data");
+        }
+      }
+      
       allEvents.push(...distributeTopicsToCalendar(roadmapTopics));
     } else {
+      // Process all roadmaps if none selected
       Object.values(topics).forEach(roadmapTopics => {
         allEvents.push(...distributeTopicsToCalendar(roadmapTopics));
       });
     }
     
+    console.log(`Generated ${allEvents.length} calendar events`);
     setCalendarEvents(allEvents);
   }, [selectedRoadmapId, topics]);
 

@@ -5,49 +5,69 @@ import { Topic, CalendarEvent } from "./types";
 export const distributeTopicsToCalendar = (topics: Topic[], startDate = new Date()) => {
   const calendarEvents: CalendarEvent[] = [];
 
+  // Only proceed if we have topics to distribute
+  if (topics.length === 0) {
+    return calendarEvents;
+  }
+
+  // Sort topics by day number to ensure correct ordering
   const sortedTopics = [...topics].sort((a, b) => a.day_number - b.day_number);
   const today = new Date();
   
-  // Only proceed if we have topics to distribute
-  if (sortedTopics.length > 0) {
-    // Find the roadmap id from the first topic
-    const roadmapId = sortedTopics[0].roadmap_id;
+  // Important: Find the roadmap's original start date
+  // We need to find the date when day_number=1 was scheduled
+
+  // First, check if we have the day 1 topic
+  let roadmapStartDate: Date;
+  const dayOneTopic = sortedTopics.find(topic => topic.created_at && topic.day_number === 1);
+  
+  if (dayOneTopic) {
+    // If we have day 1, use its creation date directly
+    roadmapStartDate = new Date(dayOneTopic.created_at);
+  } else {
+    // If no day 1 topic, calculate from the earliest day_number topic
+    const earliestTopic = sortedTopics[0]; // Already sorted by day_number
+    roadmapStartDate = new Date(earliestTopic.created_at);
     
-    // Find the earliest topic by day_number (should be day 1)
-    const earliestTopic = sortedTopics[0];
-    
-    // Calculate the original start date of the roadmap using the earliest topic's creation date
-    // We subtract (day_number - 1) days to get back to day 1
-    const originalStartDate = new Date(earliestTopic.created_at);
-    originalStartDate.setDate(originalStartDate.getDate() - (earliestTopic.day_number - 1));
-    
-    // Use this fixed original start date for all topics
-    sortedTopics.forEach((topic) => {
-      // Calculate each topic's date based on its day number and the original start date
-      const topicDate = new Date(originalStartDate);
-      topicDate.setDate(originalStartDate.getDate() + (topic.day_number - 1));
-      
-      let status: 'completed' | 'pending' | 'missed';
-      if (topic.completed) {
-        status = 'completed';
-      } else if (isBefore(topicDate, today) && !isSameDay(topicDate, today)) {
-        status = 'missed';
-      } else {
-        status = 'pending';
-      }
-      
-      calendarEvents.push({
-        date: topicDate,
-        title: topic.title,
-        completed: topic.completed,
-        id: topic.id,
-        roadmap_id: topic.roadmap_id,
-        description: topic.description,
-        status,
-        day_number: topic.day_number
-      });
-    });
+    // Adjust back to day 1 by subtracting (day_number - 1) days
+    roadmapStartDate.setDate(roadmapStartDate.getDate() - (earliestTopic.day_number - 1));
   }
+  
+  // For debugging
+  console.log("Original roadmap start date:", roadmapStartDate);
+  
+  // Calculate each topic's display date based on the roadmap's start date
+  sortedTopics.forEach((topic) => {
+    if (!topic.created_at) {
+      console.warn("Topic missing created_at date:", topic);
+      return;
+    }
+    
+    // Apply the formula: Display Date = roadmapStartDate + (day_number - 1) days
+    const topicDate = new Date(roadmapStartDate);
+    topicDate.setDate(roadmapStartDate.getDate() + (topic.day_number - 1));
+    
+    // Determine status based on completion and dates
+    let status: 'completed' | 'pending' | 'missed';
+    if (topic.completed) {
+      status = 'completed';
+    } else if (isBefore(topicDate, today) && !isSameDay(topicDate, today)) {
+      status = 'missed';
+    } else {
+      status = 'pending';
+    }
+    
+    calendarEvents.push({
+      date: topicDate,
+      title: topic.title,
+      completed: topic.completed,
+      id: topic.id,
+      roadmap_id: topic.roadmap_id,
+      description: topic.description,
+      status,
+      day_number: topic.day_number
+    });
+  });
 
   return calendarEvents;
 };
