@@ -15,6 +15,7 @@ export type Database = {
           description: string | null
           duration_days: number
           id: string
+          mind_map_data: Json | null
           title: string
           updated_at: string
           user_id: string
@@ -24,6 +25,7 @@ export type Database = {
           description?: string | null
           duration_days?: number
           id?: string
+          mind_map_data?: Json | null
           title: string
           updated_at?: string
           user_id: string
@@ -33,6 +35,7 @@ export type Database = {
           description?: string | null
           duration_days?: number
           id?: string
+          mind_map_data?: Json | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -46,6 +49,9 @@ export type Database = {
           day_number: number
           description: string | null
           id: string
+          node_position: Json | null
+          parent_topic_id: string | null
+          resources: Json | null
           roadmap_id: string
           title: string
           updated_at: string
@@ -56,6 +62,9 @@ export type Database = {
           day_number: number
           description?: string | null
           id?: string
+          node_position?: Json | null
+          parent_topic_id?: string | null
+          resources?: Json | null
           roadmap_id: string
           title: string
           updated_at?: string
@@ -66,11 +75,21 @@ export type Database = {
           day_number?: number
           description?: string | null
           id?: string
+          node_position?: Json | null
+          parent_topic_id?: string | null
+          resources?: Json | null
           roadmap_id?: string
           title?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "learning_topics_parent_topic_id_fkey"
+            columns: ["parent_topic_id"]
+            isOneToOne: false
+            referencedRelation: "learning_topics"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "learning_topics_roadmap_id_fkey"
             columns: ["roadmap_id"]

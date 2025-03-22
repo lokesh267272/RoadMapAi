@@ -7,31 +7,45 @@ export const distributeTopicsToCalendar = (topics: Topic[], startDate = new Date
 
   const sortedTopics = [...topics].sort((a, b) => a.day_number - b.day_number);
   const today = new Date();
-
-  sortedTopics.forEach((topic) => {
-    const topicDate = new Date(startDate);
-    topicDate.setDate(startDate.getDate() + (topic.day_number - 1));
+  
+  // Find the earliest topic's day number to calculate the true start date
+  // This preserves the original start date based on the first day_number
+  if (sortedTopics.length > 0) {
+    const firstTopicDayNumber = sortedTopics[0].day_number;
+    const lastCreatedTopic = sortedTopics.reduce((latest, current) => {
+      return new Date(latest.created_at) > new Date(current.created_at) ? latest : current;
+    }, sortedTopics[0]);
     
-    let status: 'completed' | 'pending' | 'missed';
-    if (topic.completed) {
-      status = 'completed';
-    } else if (isBefore(topicDate, today) && !isSameDay(topicDate, today)) {
-      status = 'missed';
-    } else {
-      status = 'pending';
-    }
+    // Calculate the original start date by subtracting days from the creation date
+    const originalStartDate = new Date(lastCreatedTopic.created_at);
+    originalStartDate.setDate(originalStartDate.getDate() - (lastCreatedTopic.day_number - 1));
     
-    calendarEvents.push({
-      date: topicDate,
-      title: topic.title,
-      completed: topic.completed,
-      id: topic.id,
-      roadmap_id: topic.roadmap_id,
-      description: topic.description,
-      status,
-      day_number: topic.day_number
+    // Use the calculated original start date instead of the current date
+    sortedTopics.forEach((topic) => {
+      const topicDate = new Date(originalStartDate);
+      topicDate.setDate(originalStartDate.getDate() + (topic.day_number - 1));
+      
+      let status: 'completed' | 'pending' | 'missed';
+      if (topic.completed) {
+        status = 'completed';
+      } else if (isBefore(topicDate, today) && !isSameDay(topicDate, today)) {
+        status = 'missed';
+      } else {
+        status = 'pending';
+      }
+      
+      calendarEvents.push({
+        date: topicDate,
+        title: topic.title,
+        completed: topic.completed,
+        id: topic.id,
+        roadmap_id: topic.roadmap_id,
+        description: topic.description,
+        status,
+        day_number: topic.day_number
+      });
     });
-  });
+  }
 
   return calendarEvents;
 };

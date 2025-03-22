@@ -8,6 +8,8 @@ export interface Topic {
   day_number: number;
   roadmap_id: string;
   description?: string | null;
+  created_at: string; // Add this to ensure we have the creation date
+  updated_at?: string;
 }
 
 export interface CalendarViewProps {
