@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button"; // Fixed import from button instead of card
+import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -74,26 +74,22 @@ const FlowchartView = () => {
         if (roadmap.mind_map_data) {
           // Safely access the properties using type guards
           const mindMapData = roadmap.mind_map_data as any;
-          if (mindMapData.nodes && Array.isArray(mindMapData.nodes)) {
-            setNodes(mindMapData.nodes);
+          if (mindMapData && typeof mindMapData === 'object') {
+            if (mindMapData.nodes && Array.isArray(mindMapData.nodes)) {
+              setNodes(mindMapData.nodes);
+            }
+            if (mindMapData.edges && Array.isArray(mindMapData.edges)) {
+              setEdges(mindMapData.edges);
+            }
           }
-          if (mindMapData.edges && Array.isArray(mindMapData.edges)) {
-            setEdges(mindMapData.edges);
+          
+          // If we have data but it's empty or invalid, fetch the topics
+          if (nodes.length <= 1) {
+            await fetchTopicsAndGenerateFlowchart(roadmapId, roadmap.title);
           }
         } else {
-          // Fetch topics to build the flowchart
-          const { data: topics, error: topicsError } = await supabase
-            .from('learning_topics')
-            .select('*')
-            .eq('roadmap_id', roadmapId)
-            .order('day_number', { ascending: true });
-
-          if (topicsError) throw topicsError;
-
-          // Generate flowchart from topics
-          const { generatedNodes, generatedEdges } = generateFlowchartFromTopics(topics);
-          setNodes(generatedNodes);
-          setEdges(generatedEdges);
+          // No flowchart data, so fetch topics to build it
+          await fetchTopicsAndGenerateFlowchart(roadmapId, roadmap.title);
         }
       } catch (error) {
         console.error("Error fetching roadmap data:", error);
@@ -106,7 +102,39 @@ const FlowchartView = () => {
     fetchRoadmapData();
   }, [roadmapId]);
 
-  const generateFlowchartFromTopics = (topics: Topic[]) => {
+  const fetchTopicsAndGenerateFlowchart = async (roadmapId: string, title: string) => {
+    try {
+      // Fetch topics to build the flowchart
+      const { data: topics, error: topicsError } = await supabase
+        .from('learning_topics')
+        .select('id, title, completed, day_number')
+        .eq('roadmap_id', roadmapId)
+        .order('day_number', { ascending: true });
+
+      if (topicsError) throw topicsError;
+
+      if (topics && topics.length > 0) {
+        // Generate flowchart from topics
+        const { generatedNodes, generatedEdges } = generateFlowchartFromTopics(topics, title);
+        setNodes(generatedNodes);
+        setEdges(generatedEdges);
+      } else {
+        // If no topics, at least show the root node
+        setNodes([{
+          id: 'root',
+          type: 'input',
+          data: { label: title },
+          position: { x: 250, y: 0 }
+        }]);
+        setEdges([]);
+      }
+    } catch (error) {
+      console.error("Error fetching topics:", error);
+      toast.error("Failed to load topics");
+    }
+  };
+
+  const generateFlowchartFromTopics = (topics: Topic[], title: string) => {
     const generatedNodes: RoadmapNode[] = [];
     const generatedEdges: RoadmapEdge[] = [];
     
@@ -114,7 +142,7 @@ const FlowchartView = () => {
     generatedNodes.push({
       id: 'root',
       type: 'input',
-      data: { label: roadmapTitle },
+      data: { label: title },
       position: { x: 250, y: 0 }
     });
 
