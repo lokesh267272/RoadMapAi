@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button"; // Fixed import from button instead of card
+import { Button } from "@/components/ui/card";
 import { ArrowLeft, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -10,48 +10,14 @@ import RoadmapFlowchart from "@/components/flowchart/RoadmapFlowchart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
-// Define proper TypeScript interfaces for our data structures
-interface RoadmapNode {
-  id: string;
-  type: string;
-  data: { label: string; completed?: boolean };
-  position: { x: number; y: number };
-  style?: any;
-}
-
-interface RoadmapEdge {
-  id: string;
-  source: string;
-  target: string;
-  animated?: boolean;
-  style?: any;
-}
-
-interface MindMapData {
-  nodes: RoadmapNode[];
-  edges: RoadmapEdge[];
-}
-
-interface Roadmap {
-  title: string;
-  mind_map_data: MindMapData | null;
-}
-
-interface Topic {
-  id: string;
-  title: string;
-  completed: boolean;
-  day_number: number;
-}
-
 const FlowchartView = () => {
   const { roadmapId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [roadmapTitle, setRoadmapTitle] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [nodes, setNodes] = useState<RoadmapNode[]>([]);
-  const [edges, setEdges] = useState<RoadmapEdge[]>([]);
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
 
   useEffect(() => {
     const fetchRoadmapData = async () => {
@@ -71,10 +37,8 @@ const FlowchartView = () => {
 
         // Check if we have flowchart data already
         if (roadmap.mind_map_data) {
-          // Type assertion to help TypeScript understand the structure
-          const mindMapData = roadmap.mind_map_data as MindMapData;
-          setNodes(mindMapData.nodes || []);
-          setEdges(mindMapData.edges || []);
+          setNodes(roadmap.mind_map_data.nodes || []);
+          setEdges(roadmap.mind_map_data.edges || []);
         } else {
           // Fetch topics to build the flowchart
           const { data: topics, error: topicsError } = await supabase
@@ -101,9 +65,9 @@ const FlowchartView = () => {
     fetchRoadmapData();
   }, [roadmapId]);
 
-  const generateFlowchartFromTopics = (topics: Topic[]) => {
-    const generatedNodes: RoadmapNode[] = [];
-    const generatedEdges: RoadmapEdge[] = [];
+  const generateFlowchartFromTopics = (topics) => {
+    const generatedNodes = [];
+    const generatedEdges = [];
     
     // Create a node for the roadmap title (root node)
     generatedNodes.push({
@@ -118,7 +82,7 @@ const FlowchartView = () => {
     const maxNodesPerColumn = 4;
     
     // Group topics by week for better organization
-    const topicsByWeek = topics.reduce((acc: Record<string, Topic[]>, topic) => {
+    const topicsByWeek = topics.reduce((acc, topic) => {
       const weekNumber = Math.ceil(topic.day_number / 7);
       if (!acc[weekNumber]) acc[weekNumber] = [];
       acc[weekNumber].push(topic);
