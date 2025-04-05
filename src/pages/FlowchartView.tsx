@@ -9,7 +9,6 @@ import { useAuth } from "@/hooks/useAuth";
 import RoadmapFlowchart from "@/components/flowchart/RoadmapFlowchart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { Json } from "@/integrations/supabase/types";
 
 // Define proper TypeScript interfaces for our data structures
 interface RoadmapNode {
@@ -35,7 +34,7 @@ interface MindMapData {
 
 interface Roadmap {
   title: string;
-  mind_map_data: Json | null;
+  mind_map_data: MindMapData | null;
 }
 
 interface Topic {
@@ -72,14 +71,10 @@ const FlowchartView = () => {
 
         // Check if we have flowchart data already
         if (roadmap.mind_map_data) {
-          // Safely access the properties using type guards
-          const mindMapData = roadmap.mind_map_data as any;
-          if (mindMapData.nodes && Array.isArray(mindMapData.nodes)) {
-            setNodes(mindMapData.nodes);
-          }
-          if (mindMapData.edges && Array.isArray(mindMapData.edges)) {
-            setEdges(mindMapData.edges);
-          }
+          // Type assertion to help TypeScript understand the structure
+          const mindMapData = roadmap.mind_map_data as MindMapData;
+          setNodes(mindMapData.nodes || []);
+          setEdges(mindMapData.edges || []);
         } else {
           // Fetch topics to build the flowchart
           const { data: topics, error: topicsError } = await supabase
@@ -197,7 +192,7 @@ const FlowchartView = () => {
       const { error } = await supabase
         .from('learning_roadmaps')
         .update({ 
-          mind_map_data: { nodes, edges } as unknown as Json,
+          mind_map_data: { nodes, edges },
           updated_at: new Date().toISOString()
         })
         .eq('id', roadmapId);
