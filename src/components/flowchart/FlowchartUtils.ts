@@ -7,8 +7,8 @@ import { Json } from "@/integrations/supabase/types";
 export const fetchRoadmapData = async (
   roadmapId: string, 
   setRoadmapTitle: (title: string) => void,
-  setNodes: (nodes: RoadmapNode[]) => void,
-  setEdges: (edges: RoadmapEdge[]) => void,
+  setNodes: (nodes: RoadmapNode[] | ((prev: RoadmapNode[]) => RoadmapNode[])) => void,
+  setEdges: (edges: RoadmapEdge[] | ((prev: RoadmapEdge[]) => RoadmapEdge[])) => void,
   setIsLoading: (loading: boolean) => void
 ) => {
   if (!roadmapId) return;
@@ -56,22 +56,25 @@ export const fetchRoadmapData = async (
 };
 
 // Helper to get current nodes state for condition check
-const getNodesState = async (setNodes: (nodes: RoadmapNode[]) => void): Promise<RoadmapNode[]> => {
+const getNodesState = async (
+  setNodes: (nodes: RoadmapNode[] | ((prev: RoadmapNode[]) => RoadmapNode[])) => void
+): Promise<RoadmapNode[]> => {
   return new Promise(resolve => {
     let currentNodes: RoadmapNode[] = [];
     setNodes(nodes => {
       currentNodes = nodes;
       return nodes;
     });
-    resolve(currentNodes);
+    // Small timeout to ensure the state has been updated
+    setTimeout(() => resolve(currentNodes), 0);
   });
 };
 
 export const fetchTopicsAndGenerateFlowchart = async (
   roadmapId: string, 
   title: string,
-  setNodes: (nodes: RoadmapNode[]) => void,
-  setEdges: (edges: RoadmapEdge[]) => void
+  setNodes: (nodes: RoadmapNode[] | ((prev: RoadmapNode[]) => RoadmapNode[])) => void,
+  setEdges: (edges: RoadmapEdge[] | ((prev: RoadmapEdge[]) => RoadmapEdge[])) => void
 ) => {
   try {
     // Fetch topics to build the flowchart
