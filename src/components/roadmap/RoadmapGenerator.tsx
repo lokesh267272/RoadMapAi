@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Brain } from "lucide-react";
+import { Brain, GitBranch } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoadmapGenerator } from "@/hooks/useRoadmapGenerator";
 import LearningGoalInput from "./LearningGoalInput";
@@ -18,6 +18,7 @@ const RoadmapGenerator = () => {
   const [description, setDescription] = useState("");
   const [duration, setDuration] = useState([30]);
   const [isAIGenerated, setIsAIGenerated] = useState(true); // Default to AI generation
+  const [includeFlowchart, setIncludeFlowchart] = useState(true); // Default to create flowchart
   const { user } = useAuth();
   
   const {
@@ -33,7 +34,8 @@ const RoadmapGenerator = () => {
       learningGoal,
       description,
       duration,
-      isAIGenerated
+      isAIGenerated,
+      includeFlowchart
     });
   };
 
@@ -72,6 +74,20 @@ const RoadmapGenerator = () => {
               isAIGenerated={isAIGenerated}
               onChange={setIsAIGenerated}
             />
+            
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="include-flowchart"
+                checked={includeFlowchart}
+                onChange={(e) => setIncludeFlowchart(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <label htmlFor="include-flowchart" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
+                <GitBranch className="mr-1.5 h-4 w-4 text-primary" />
+                Generate visual flowchart
+              </label>
+            </div>
 
             <ErrorDisplay error={error} />
 

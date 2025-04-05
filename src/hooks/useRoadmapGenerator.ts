@@ -9,6 +9,7 @@ export interface RoadmapFormData {
   description: string;
   duration: number[];
   isAIGenerated: boolean;
+  includeFlowchart?: boolean;
 }
 
 export const useRoadmapGenerator = (userId: string | undefined) => {
@@ -18,7 +19,7 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
   const navigate = useNavigate();
 
   const generateRoadmap = async (formData: RoadmapFormData) => {
-    const { learningGoal, description, duration, isAIGenerated } = formData;
+    const { learningGoal, description, duration, isAIGenerated, includeFlowchart = true } = formData;
     
     setError(null);
     
@@ -37,6 +38,9 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
     setGenerationProgress(10);
     
     try {
+      let roadmapData: any = null;
+      let topicsData: any[] = [];
+      
       if (isAIGenerated) {
         // Use AI to generate roadmap
         setGenerationProgress(30);
@@ -67,7 +71,8 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
             user_id: userId,
             title: aiData.roadmap.title || learningGoal,
             description: description,
-            duration_days: duration[0]
+            duration_days: duration[0],
+            mind_map_data: includeFlowchart ? generateInitialFlowchartData(aiData.roadmap.title || learningGoal) : null
           })
           .select()
           .single();
@@ -77,11 +82,12 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
           throw roadmapError;
         }
         
+        roadmapData = roadmap;
         setGenerationProgress(80);
         console.log("Created roadmap:", roadmap);
         
         // Generate topics from AI response
-        const topics = aiData.roadmap.topics.map((topic: any, index: number) => ({
+        topicsData = aiData.roadmap.topics.map((topic: any, index: number) => ({
           roadmap_id: roadmap.id,
           title: topic.topic,
           description: topic.content,
@@ -89,20 +95,7 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
           completed: false
         }));
         
-        console.log("Inserting topics:", topics);
-        
-        // Insert topics
-        const { error: topicsError } = await supabase
-          .from('learning_topics')
-          .insert(topics);
-        
-        if (topicsError) {
-          console.error("Topics insertion error:", topicsError);
-          throw topicsError;
-        }
-        
-        setGenerationProgress(100);
-        toast.success("AI-generated roadmap created successfully!");
+        console.log("Inserting topics:", topicsData);
       } else {
         // Generate simple topics based on the duration
         setGenerationProgress(50);
@@ -114,34 +107,40 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
             user_id: userId,
             title: learningGoal,
             description: description,
-            duration_days: duration[0]
+            duration_days: duration[0],
+            mind_map_data: includeFlowchart ? generateInitialFlowchartData(learningGoal) : null
           })
           .select()
           .single();
         
         if (roadmapError) throw roadmapError;
         
+        roadmapData = roadmap;
         setGenerationProgress(80);
         
         // Generate simple topics based on the duration
-        const topics = [];
         for (let i = 1; i <= duration[0]; i++) {
-          topics.push({
+          topicsData.push({
             roadmap_id: roadmap.id,
             title: `Day ${i}: ${learningGoal} - Part ${i}`,
             day_number: i,
             completed: false
           });
         }
-        
-        // Insert topics
-        const { error: topicsError } = await supabase
-          .from('learning_topics')
-          .insert(topics);
-        
-        if (topicsError) throw topicsError;
-        
-        setGenerationProgress(100);
+      }
+      
+      // Insert topics
+      const { error: topicsError } = await supabase
+        .from('learning_topics')
+        .insert(topicsData);
+      
+      if (topicsError) throw topicsError;
+      
+      setGenerationProgress(100);
+      
+      if (includeFlowchart) {
+        toast.success("Roadmap generated with flowchart! You can view it in the flowchart view.");
+      } else {
         toast.success("Roadmap generated successfully!");
       }
       
@@ -155,6 +154,21 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
       setIsLoading(false);
       setGenerationProgress(0);
     }
+  };
+
+  const generateInitialFlowchartData = (title: string) => {
+    // Create simple initial flowchart with just the title node
+    return {
+      nodes: [
+        {
+          id: 'root',
+          type: 'input',
+          data: { label: title },
+          position: { x: 250, y: 50 },
+        }
+      ],
+      edges: []
+    };
   };
 
   return {

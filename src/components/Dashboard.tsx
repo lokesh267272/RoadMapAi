@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Calendar, CheckCircle, Clock, Plus, Target, Loader2, ArrowLeft, Trash2 } from "lucide-react";
+import { Calendar, CheckCircle, Clock, Plus, Target, Loader2, ArrowLeft, Trash2, Share, GitBranch } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import RoadmapGenerator from "./RoadmapGenerator";
 import CalendarView from "./calendar";
@@ -267,6 +267,10 @@ const DashboardComponent = ({ initialTab }: DashboardProps) => {
     setRoadmapToDelete(roadmapId);
   };
 
+  const handleViewFlowchart = (roadmapId: string) => {
+    navigate(`/flowchart/${roadmapId}`);
+  };
+
   const confirmDelete = async () => {
     if (!roadmapToDelete) return;
     
@@ -351,13 +355,20 @@ const DashboardComponent = ({ initialTab }: DashboardProps) => {
           ></div>
         </div>
         
-        <div className="flex justify-between mt-4">
+        <div className="flex flex-wrap gap-2 mt-4">
           <Button 
             variant="outline" 
             size="sm"
             onClick={() => handleViewDetails(roadmap.id)}
           >
             View Details
+          </Button>
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={() => handleViewFlowchart(roadmap.id)}
+          >
+            <GitBranch className="h-4 w-4 mr-1" /> View Flowchart
           </Button>
           <Button 
             size="sm"

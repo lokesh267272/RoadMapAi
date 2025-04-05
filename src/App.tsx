@@ -14,6 +14,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const FlowchartView = lazy(() => import("./pages/FlowchartView"));
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,11 @@ const App = () => (
                 <Route path="dashboard" element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="flowchart/:roadmapId" element={
+                  <ProtectedRoute>
+                    <FlowchartView />
                   </ProtectedRoute>
                 } />
                 <Route path="*" element={<NotFound />} />
