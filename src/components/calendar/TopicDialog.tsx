@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { format, isBefore, isToday } from "date-fns"; // Added the missing imports
-import { CalendarIcon, Edit, ArrowRight, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { CalendarIcon, Edit, ArrowRight, ChevronDown, ChevronUp, Loader2, Book } from "lucide-react";
 import { CalendarEvent } from "./types";
 import { getStatusColor } from "./utils";
 import { 
@@ -19,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 interface TopicDialogProps {
   open: boolean;
@@ -69,6 +70,8 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
   expandedDescriptions,
   toggleDescription
 }) => {
+  const navigate = useNavigate();
+
   const handleEditClick = (topic: CalendarEvent) => {
     setEditTopicId(topic.id);
     setEditTitle(topic.title);
@@ -80,6 +83,10 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
     setEditTopicId(topic.id);
     setRescheduleMode(true);
     setRescheduleDate(undefined);
+  };
+
+  const handleQuizClick = (topic: CalendarEvent) => {
+    navigate(`/quiz-generator?topic=${encodeURIComponent(topic.title)}&id=${topic.id}&roadmapId=${topic.roadmap_id}`);
   };
 
   return (
@@ -252,6 +259,15 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
                   >
                     <ArrowRight className="mr-1 h-3 w-3" />
                     Reschedule
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleQuizClick(event)}
+                    className="text-xs"
+                  >
+                    <Book className="mr-1 h-3 w-3" />
+                    AI Quiz
                   </Button>
                 </div>
               </div>
