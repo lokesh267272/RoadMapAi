@@ -67,6 +67,8 @@ const CreateEventDialog = ({
         event_date: date.toISOString(),
         user_id: user?.id,
         is_custom: true,
+        roadmap_id: 'custom', // Add a default roadmap_id for custom events
+        day_number: 0 // Add a default day_number for custom events
       };
 
       const { error } = await supabase

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { isSameDay, isToday, isBefore, parseISO } from "date-fns";
@@ -86,17 +85,19 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
         
         if (customEvents && customEvents.length > 0) {
           customEvents.forEach(event => {
-            allEvents.push({
-              date: new Date(event.event_date),
-              title: event.title,
-              completed: event.completed || false,
-              id: event.id,
-              roadmap_id: event.roadmap_id || 'custom',
-              description: event.description,
-              status: event.completed ? 'completed' : isBefore(new Date(event.event_date), new Date()) ? 'missed' : 'pending',
-              day_number: 0,
-              is_custom: true
-            });
+            if (event.event_date) {
+              allEvents.push({
+                date: new Date(event.event_date),
+                title: event.title,
+                completed: event.completed || false,
+                id: event.id,
+                roadmap_id: event.roadmap_id || 'custom',
+                description: event.description,
+                status: event.completed ? 'completed' : isBefore(new Date(event.event_date), new Date()) ? 'missed' : 'pending',
+                day_number: event.day_number || 0,
+                is_custom: true
+              });
+            }
           });
         }
       } catch (error) {
@@ -244,7 +245,6 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
   };
 
   const handleEventCreated = () => {
-    // Refresh calendar events after creating a new event
     const fetchAllEvents = async () => {
       const allEvents: CalendarEvent[] = [];
       
@@ -269,17 +269,19 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
         
         if (customEvents && customEvents.length > 0) {
           customEvents.forEach(event => {
-            allEvents.push({
-              date: new Date(event.event_date),
-              title: event.title,
-              completed: event.completed || false,
-              id: event.id,
-              roadmap_id: event.roadmap_id || 'custom',
-              description: event.description,
-              status: event.completed ? 'completed' : isBefore(new Date(event.event_date), new Date()) ? 'missed' : 'pending',
-              day_number: 0,
-              is_custom: true
-            });
+            if (event.event_date) {
+              allEvents.push({
+                date: new Date(event.event_date),
+                title: event.title,
+                completed: event.completed || false,
+                id: event.id,
+                roadmap_id: event.roadmap_id || 'custom',
+                description: event.description,
+                status: event.completed ? 'completed' : isBefore(new Date(event.event_date), new Date()) ? 'missed' : 'pending',
+                day_number: event.day_number || 0,
+                is_custom: true
+              });
+            }
           });
         }
       } catch (error) {
