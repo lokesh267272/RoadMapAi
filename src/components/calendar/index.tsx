@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { isSameDay, isToday, isBefore, parseISO } from "date-fns";
@@ -9,6 +10,7 @@ import TopicDialog from "./TopicDialog";
 import CalendarStats from "./CalendarStats";
 import CreateEventDialog from "./CreateEventDialog";
 import { Topic, CalendarViewProps, CalendarEvent } from "./types";
+import { Tables } from "@/integrations/supabase/types";
 
 const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
   const [date, setDate] = useState<Date>(new Date());
@@ -84,7 +86,8 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
         if (error) throw error;
         
         if (customEvents && customEvents.length > 0) {
-          customEvents.forEach((event: Topic) => {
+          // Explicitly type the customEvents to avoid deep instantiation
+          (customEvents as Tables<'learning_topics'>[]).forEach((event) => {
             if (event.event_date) {
               allEvents.push({
                 date: new Date(event.event_date),
@@ -268,7 +271,8 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
         if (error) throw error;
         
         if (customEvents && customEvents.length > 0) {
-          customEvents.forEach((event: Topic) => {
+          // Explicitly type the customEvents to avoid deep instantiation
+          (customEvents as Tables<'learning_topics'>[]).forEach((event) => {
             if (event.event_date) {
               allEvents.push({
                 date: new Date(event.event_date),
