@@ -76,13 +76,16 @@ const CreateEventDialog = ({
       const dayDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
       const dayNumber = dayDiff + 1;
 
+      // Generate a random UUID for custom events instead of using the string 'custom'
+      const customRoadmapId = crypto.randomUUID();
+
       const eventData = {
         title: title.trim(),
         description: description.trim() || null,
         event_date: date.toISOString(),
         user_id: user.id,
         is_custom: true,
-        roadmap_id: 'custom', // Default roadmap_id for custom events
+        roadmap_id: customRoadmapId, // Use a properly generated UUID
         day_number: dayNumber // Calculate day number based on the date
       };
 
