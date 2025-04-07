@@ -72,12 +72,21 @@ const QuizGenerator = () => {
     ).length;
 
     const score = correctAnswers / quiz.questions.length;
+    
+    // Create detailed question results
+    const questionDetails = quiz.questions.map((q, index) => ({
+      question: q.question,
+      options: q.options,
+      correct_answer: q.correct_answer,
+      user_answer: selectedAnswers[index] || ""
+    }));
 
     const result: QuizResult = {
       score,
       totalQuestions: quiz.questions.length,
       correctAnswers,
-      selectedAnswers
+      selectedAnswers,
+      questionDetails
     };
 
     setQuizResult(result);

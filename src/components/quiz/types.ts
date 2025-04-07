@@ -19,4 +19,10 @@ export interface QuizResult {
   totalQuestions: number;
   correctAnswers: number;
   selectedAnswers: Record<number, string>;
+  questionDetails?: {
+    question: string;
+    options: string[];
+    correct_answer: string;
+    user_answer: string;
+  }[];
 }
