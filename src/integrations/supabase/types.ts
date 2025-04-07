@@ -57,6 +57,7 @@ export type Database = {
           roadmap_id: string
           title: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           completed?: boolean
@@ -72,6 +73,7 @@ export type Database = {
           roadmap_id: string
           title: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           completed?: boolean
@@ -87,6 +89,7 @@ export type Database = {
           roadmap_id?: string
           title?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {

@@ -58,17 +58,32 @@ const CreateEventDialog = ({
       return;
     }
 
+    if (!user) {
+      toast.error("You must be logged in to create events");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
+      // Calculate day number based on the selected date
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selectedDate = new Date(date);
+      selectedDate.setHours(0, 0, 0, 0);
+      
+      const timeDiff = selectedDate.getTime() - today.getTime();
+      const dayDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
+      const dayNumber = dayDiff + 1;
+
       const eventData = {
         title: title.trim(),
         description: description.trim() || null,
         event_date: date.toISOString(),
-        user_id: user?.id,
+        user_id: user.id,
         is_custom: true,
-        roadmap_id: 'custom', // Add a default roadmap_id for custom events
-        day_number: 0 // Add a default day_number for custom events
+        roadmap_id: 'custom', // Default roadmap_id for custom events
+        day_number: dayNumber // Calculate day number based on the date
       };
 
       const { error } = await supabase
