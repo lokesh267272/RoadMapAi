@@ -8,8 +8,11 @@ export interface Topic {
   day_number: number;
   roadmap_id: string;
   description?: string | null;
-  created_at: string; // Add this to ensure we have the creation date
+  created_at: string;
   updated_at?: string;
+  parent_topic_id?: string | null;
+  resources?: any | null;
+  node_position?: any | null;
   is_custom?: boolean;
   event_date?: string;
 }

@@ -84,7 +84,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
         if (error) throw error;
         
         if (customEvents && customEvents.length > 0) {
-          customEvents.forEach(event => {
+          customEvents.forEach((event: Topic) => {
             if (event.event_date) {
               allEvents.push({
                 date: new Date(event.event_date),
@@ -268,7 +268,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
         if (error) throw error;
         
         if (customEvents && customEvents.length > 0) {
-          customEvents.forEach(event => {
+          customEvents.forEach((event: Topic) => {
             if (event.event_date) {
               allEvents.push({
                 date: new Date(event.event_date),

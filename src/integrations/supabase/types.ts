@@ -48,7 +48,9 @@ export type Database = {
           created_at: string
           day_number: number
           description: string | null
+          event_date: string | null
           id: string
+          is_custom: boolean | null
           node_position: Json | null
           parent_topic_id: string | null
           resources: Json | null
@@ -61,7 +63,9 @@ export type Database = {
           created_at?: string
           day_number: number
           description?: string | null
+          event_date?: string | null
           id?: string
+          is_custom?: boolean | null
           node_position?: Json | null
           parent_topic_id?: string | null
           resources?: Json | null
@@ -74,7 +78,9 @@ export type Database = {
           created_at?: string
           day_number?: number
           description?: string | null
+          event_date?: string | null
           id?: string
+          is_custom?: boolean | null
           node_position?: Json | null
           parent_topic_id?: string | null
           resources?: Json | null
