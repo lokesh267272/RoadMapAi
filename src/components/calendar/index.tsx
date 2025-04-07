@@ -8,6 +8,7 @@ import { FullScreenCalendar } from "../ui/fullscreen-calendar";
 import { distributeTopicsToCalendar, formatCalendarData } from "./utils";
 import TopicDialog from "./TopicDialog";
 import CalendarStats from "./CalendarStats";
+import CreateEventDialog from "./CreateEventDialog";
 import { Topic, CalendarViewProps, CalendarEvent } from "./types";
 
 const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
@@ -17,6 +18,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [createEventDialogOpen, setCreateEventDialogOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -60,18 +62,51 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
   }, [calendarEvents]);
 
   useEffect(() => {
-    const allEvents: CalendarEvent[] = [];
-    
-    if (selectedRoadmapId && topics[selectedRoadmapId]) {
-      const roadmapTopics = topics[selectedRoadmapId];
-      allEvents.push(...distributeTopicsToCalendar(roadmapTopics));
-    } else {
-      Object.values(topics).forEach(roadmapTopics => {
+    const fetchAllEvents = async () => {
+      const allEvents: CalendarEvent[] = [];
+      
+      // First, add roadmap topics
+      if (selectedRoadmapId && topics[selectedRoadmapId]) {
+        const roadmapTopics = topics[selectedRoadmapId];
         allEvents.push(...distributeTopicsToCalendar(roadmapTopics));
-      });
-    }
+      } else {
+        Object.values(topics).forEach(roadmapTopics => {
+          allEvents.push(...distributeTopicsToCalendar(roadmapTopics));
+        });
+      }
+      
+      // Then, fetch custom events
+      try {
+        const { data: customEvents, error } = await supabase
+          .from('learning_topics')
+          .select('*')
+          .eq('is_custom', true);
+          
+        if (error) throw error;
+        
+        if (customEvents && customEvents.length > 0) {
+          customEvents.forEach(event => {
+            allEvents.push({
+              date: new Date(event.event_date),
+              title: event.title,
+              completed: event.completed || false,
+              id: event.id,
+              roadmap_id: event.roadmap_id || 'custom',
+              description: event.description,
+              status: event.completed ? 'completed' : isBefore(new Date(event.event_date), new Date()) ? 'missed' : 'pending',
+              day_number: 0,
+              is_custom: true
+            });
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching custom events:", error);
+      }
+      
+      setCalendarEvents(allEvents);
+    };
     
-    setCalendarEvents(allEvents);
+    fetchAllEvents();
   }, [selectedRoadmapId, topics]);
 
   const selectedDateEvents = selectedDate 
@@ -204,6 +239,59 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     setDialogOpen(true);
   };
 
+  const handleNewEventClick = () => {
+    setCreateEventDialogOpen(true);
+  };
+
+  const handleEventCreated = () => {
+    // Refresh calendar events after creating a new event
+    const fetchAllEvents = async () => {
+      const allEvents: CalendarEvent[] = [];
+      
+      // First, add roadmap topics
+      if (selectedRoadmapId && topics[selectedRoadmapId]) {
+        const roadmapTopics = topics[selectedRoadmapId];
+        allEvents.push(...distributeTopicsToCalendar(roadmapTopics));
+      } else {
+        Object.values(topics).forEach(roadmapTopics => {
+          allEvents.push(...distributeTopicsToCalendar(roadmapTopics));
+        });
+      }
+      
+      // Then, fetch custom events
+      try {
+        const { data: customEvents, error } = await supabase
+          .from('learning_topics')
+          .select('*')
+          .eq('is_custom', true);
+          
+        if (error) throw error;
+        
+        if (customEvents && customEvents.length > 0) {
+          customEvents.forEach(event => {
+            allEvents.push({
+              date: new Date(event.event_date),
+              title: event.title,
+              completed: event.completed || false,
+              id: event.id,
+              roadmap_id: event.roadmap_id || 'custom',
+              description: event.description,
+              status: event.completed ? 'completed' : isBefore(new Date(event.event_date), new Date()) ? 'missed' : 'pending',
+              day_number: 0,
+              is_custom: true
+            });
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching custom events:", error);
+      }
+      
+      setCalendarEvents(allEvents);
+    };
+    
+    fetchAllEvents();
+  };
+
   return (
     <div className="grid grid-cols-1 gap-6 animate-fadeInUp">
       {streak > 0 || completionRate > 0 ? (
@@ -219,6 +307,7 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
           <FullScreenCalendar 
             data={formatCalendarData(calendarEvents)} 
             onDayClick={handleDayClick}
+            onNewEventClick={handleNewEventClick}
           />
         </CardContent>
       </Card>
@@ -246,6 +335,13 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
         handleReschedule={handleReschedule}
         expandedDescriptions={expandedDescriptions}
         toggleDescription={toggleDescription}
+      />
+
+      <CreateEventDialog
+        open={createEventDialogOpen}
+        onOpenChange={setCreateEventDialogOpen}
+        onEventCreated={handleEventCreated}
+        initialDate={selectedDate}
       />
     </div>
   );

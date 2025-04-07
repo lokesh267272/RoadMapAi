@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -43,6 +44,7 @@ interface CalendarData {
 interface FullScreenCalendarProps {
   data: CalendarData[]
   onDayClick?: (date: Date) => void
+  onNewEventClick?: () => void
 }
 
 const colStartClasses = [
@@ -55,7 +57,7 @@ const colStartClasses = [
   "col-start-7",
 ]
 
-export function FullScreenCalendar({ data, onDayClick }: FullScreenCalendarProps) {
+export function FullScreenCalendar({ data, onDayClick, onNewEventClick }: FullScreenCalendarProps) {
   const today = startOfToday()
   const [selectedDay, setSelectedDay] = React.useState(today)
   const [currentMonth, setCurrentMonth] = React.useState(
@@ -87,6 +89,12 @@ export function FullScreenCalendar({ data, onDayClick }: FullScreenCalendarProps
     setSelectedDay(day);
     if (onDayClick) {
       onDayClick(day);
+    }
+  }
+
+  function handleNewEvent() {
+    if (onNewEventClick) {
+      onNewEventClick();
     }
   }
 
@@ -210,7 +218,7 @@ export function FullScreenCalendar({ data, onDayClick }: FullScreenCalendarProps
             className="block w-full md:hidden"
           />
 
-          <Button className="w-full gap-2 md:w-auto">
+          <Button className="w-full gap-2 md:w-auto" onClick={handleNewEvent}>
             <PlusCircle size={16} strokeWidth={2} aria-hidden="true" />
             <span>New Event</span>
           </Button>

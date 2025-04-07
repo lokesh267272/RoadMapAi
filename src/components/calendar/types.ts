@@ -10,6 +10,8 @@ export interface Topic {
   description?: string | null;
   created_at: string; // Add this to ensure we have the creation date
   updated_at?: string;
+  is_custom?: boolean;
+  event_date?: string;
 }
 
 export interface CalendarViewProps {
@@ -26,4 +28,5 @@ export interface CalendarEvent {
   description?: string | null;
   status: 'completed' | 'pending' | 'missed';
   day_number: number;
+  is_custom?: boolean;
 }
