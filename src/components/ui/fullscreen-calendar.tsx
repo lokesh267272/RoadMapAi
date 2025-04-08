@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -20,7 +19,6 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
-  PlusCircle,
   Search,
 } from "lucide-react"
 
@@ -44,7 +42,6 @@ interface CalendarData {
 interface FullScreenCalendarProps {
   data: CalendarData[]
   onDayClick?: (date: Date) => void
-  onNewEventClick?: () => void
 }
 
 const colStartClasses = [
@@ -57,7 +54,7 @@ const colStartClasses = [
   "col-start-7",
 ]
 
-export function FullScreenCalendar({ data, onDayClick, onNewEventClick }: FullScreenCalendarProps) {
+export function FullScreenCalendar({ data, onDayClick }: FullScreenCalendarProps) {
   const today = startOfToday()
   const [selectedDay, setSelectedDay] = React.useState(today)
   const [currentMonth, setCurrentMonth] = React.useState(
@@ -89,12 +86,6 @@ export function FullScreenCalendar({ data, onDayClick, onNewEventClick }: FullSc
     setSelectedDay(day);
     if (onDayClick) {
       onDayClick(day);
-    }
-  }
-
-  function handleNewEvent() {
-    if (onNewEventClick) {
-      onNewEventClick();
     }
   }
 
@@ -211,17 +202,6 @@ export function FullScreenCalendar({ data, onDayClick, onNewEventClick }: FullSc
               <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
             </Button>
           </div>
-
-          <Separator orientation="vertical" className="hidden h-6 md:block" />
-          <Separator
-            orientation="horizontal"
-            className="block w-full md:hidden"
-          />
-
-          <Button className="w-full gap-2 md:w-auto" onClick={handleNewEvent}>
-            <PlusCircle size={16} strokeWidth={2} aria-hidden="true" />
-            <span>New Event</span>
-          </Button>
         </div>
       </div>
 

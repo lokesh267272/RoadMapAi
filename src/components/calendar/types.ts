@@ -13,8 +13,6 @@ export interface Topic {
   parent_topic_id?: string | null;
   resources?: any | null;
   node_position?: any | null;
-  is_custom?: boolean;
-  event_date?: string;
 }
 
 export interface CalendarViewProps {
@@ -31,5 +29,4 @@ export interface CalendarEvent {
   description?: string | null;
   status: 'completed' | 'pending' | 'missed';
   day_number: number;
-  is_custom?: boolean;
 }
