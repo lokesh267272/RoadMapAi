@@ -2,7 +2,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
-// Update to use the Gemini API key that's already working in the system
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
 const corsHeaders = {
@@ -62,9 +61,9 @@ Avoid markdown, do not add extra text. The flashcards should be beginner-friendl
 
     console.log("Calling Gemini API with prompt", prompt.substring(0, 100) + "...");
 
-    // Call Gemini API - Updated to use the working model endpoint
+    // Call Gemini API
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: {
