@@ -1,9 +1,10 @@
 
 import React from "react";
-import { Edit, ArrowRight, Book, ChevronUp, ChevronDown } from "lucide-react";
+import { Edit, ArrowRight, Book, ChevronUp, ChevronDown, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { CalendarEvent } from "../types";
 import { getStatusColor } from "../utils";
@@ -17,6 +18,7 @@ interface TopicCardProps {
   onEdit: () => void;
   onReschedule: () => void;
   onQuiz: () => void;
+  onResources: () => void;
 }
 
 const TopicCard: React.FC<TopicCardProps> = ({
@@ -27,8 +29,11 @@ const TopicCard: React.FC<TopicCardProps> = ({
   onToggleComplete,
   onEdit,
   onReschedule,
-  onQuiz
+  onQuiz,
+  onResources
 }) => {
+  const hasResources = event.resources && event.resources.length > 0;
+  
   return (
     <div key={event.id} className={cn(
       "border rounded-lg overflow-hidden transition-colors",
@@ -40,6 +45,11 @@ const TopicCard: React.FC<TopicCardProps> = ({
             <h3 className="font-medium text-base">{event.title}</h3>
             {event.description && !isExpanded && (
               <p className="text-sm line-clamp-2">{event.description}</p>
+            )}
+            {hasResources && (
+              <Badge variant="outline" className="mt-1 text-xs">
+                {event.resources?.length} resources available
+              </Badge>
             )}
           </div>
           
@@ -101,6 +111,15 @@ const TopicCard: React.FC<TopicCardProps> = ({
         >
           <ArrowRight className="mr-1 h-3 w-3" />
           Reschedule
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onResources}
+          className="text-xs"
+        >
+          <FileText className="mr-1 h-3 w-3" />
+          Resources
         </Button>
         <Button
           variant="outline"

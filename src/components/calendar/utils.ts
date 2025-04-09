@@ -43,6 +43,7 @@ export const distributeTopicsToCalendar = (topics: Topic[], startDate = new Date
         id: topic.id,
         roadmap_id: topic.roadmap_id,
         description: topic.description,
+        resources: topic.resources,
         status,
         day_number: topic.day_number
       });

@@ -33,21 +33,53 @@ serve(async (req) => {
       
       Structure your response strictly as a valid JSON object with the following format:
       {
-        "title": "A descriptive title for the roadmap",
+        "title": "A descriptive and motivational title for the roadmap",
         "topics": [
           {
             "day": 1,
             "topic": "Topic title for day 1",
-            "content": "Detailed description of what to learn on day 1"
+            "content": "Clear, concise, and actionable description of what the user should learn or build on day 1",
+            "resources": [
+              {
+                "type": "doc",
+                "title": "Documentation or Article Title",
+                "url": "https://..."
+              },
+              {
+                "type": "video",
+                "title": "Video Title",
+                "url": "https://youtube.com/..."
+              }
+            ]
           },
           {
             "day": 2,
             "topic": "Topic title for day 2",
-            "content": "Detailed description of what to learn on day 2"
+            "content": "What to learn, why it's important, and how it connects to the previous day",
+            "resources": [
+              {
+                "type": "doc",
+                "title": "Documentation or Article Title",
+                "url": "https://..."
+              },
+              {
+                "type": "video",
+                "title": "Video Title",
+                "url": "https://youtube.com/..."
+              }
+            ]
           },
           ...and so on for each day
         ]
       }
+      
+      For each topic, include at least 3 learning resources with the following types:
+      - "doc": Official documentation, guides, or articles
+      - "video": Educational YouTube videos or courses
+      - "blog": Blog posts or tutorials
+      - "tool": Relevant tools or applications
+      
+      Provide actual, real, and useful resources with accurate URLs that would help someone learn the topic.
       
       Do not include any explanations, markdown, or text outside of the JSON structure.
       Ensure each day has a clear learning objective that builds on previous days.

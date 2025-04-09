@@ -1,6 +1,12 @@
 
 import { CalendarDayInfo, CalendarProps } from "@/types/calendar";
 
+export interface Resource {
+  type: 'doc' | 'video' | 'blog' | 'tool';
+  title: string;
+  url: string;
+}
+
 export interface Topic {
   id: string;
   title: string;
@@ -11,7 +17,7 @@ export interface Topic {
   created_at: string;
   updated_at?: string;
   parent_topic_id?: string | null;
-  resources?: any | null;
+  resources?: Resource[] | null;
   node_position?: any | null;
 }
 
@@ -29,4 +35,5 @@ export interface CalendarEvent {
   description?: string | null;
   status: 'completed' | 'pending' | 'missed';
   day_number: number;
+  resources?: Resource[] | null;
 }

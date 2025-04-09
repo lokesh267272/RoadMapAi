@@ -92,7 +92,8 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
           title: topic.topic,
           description: topic.content,
           day_number: topic.day || index + 1,
-          completed: false
+          completed: false,
+          resources: topic.resources || []
         }));
         
         console.log("Inserting topics:", topicsData);
@@ -124,7 +125,8 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
             roadmap_id: roadmap.id,
             title: `Day ${i}: ${learningGoal} - Part ${i}`,
             day_number: i,
-            completed: false
+            completed: false,
+            resources: []
           });
         }
       }
