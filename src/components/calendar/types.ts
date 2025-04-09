@@ -37,3 +37,13 @@ export interface CalendarEvent {
   day_number: number;
   resources?: Resource[] | null;
 }
+
+export interface Flashcard {
+  id?: string;
+  topic_id: string;
+  term: string;
+  definition: string;
+  is_learned?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}

@@ -1,8 +1,8 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import { CalendarEvent } from "./types";
+import { CalendarEvent, Flashcard } from "./types";
 import { 
   Dialog, 
   DialogContent, 
@@ -15,6 +15,10 @@ import EditTopicForm from "./dialogs/EditTopicForm";
 import RescheduleForm from "./dialogs/RescheduleForm";
 import TopicsList from "./dialogs/TopicsList";
 import ResourcesDialog from "./dialogs/ResourcesDialog";
+import FlashcardsDialog from "./dialogs/FlashcardsDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 interface TopicDialogProps {
   open: boolean;
@@ -66,8 +70,13 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
   toggleDescription
 }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [resourcesOpen, setResourcesOpen] = useState(false);
+  const [flashcardsOpen, setFlashcardsOpen] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<CalendarEvent | null>(null);
+  const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
+  const [generatedFlashcards, setGeneratedFlashcards] = useState<Flashcard[]>([]);
+  const [savedFlashcards, setSavedFlashcards] = useState<Flashcard[]>([]);
 
   const handleEditClick = (topic: CalendarEvent) => {
     setEditTopicId(topic.id);
@@ -90,6 +99,109 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
     setSelectedTopic(topic);
     setResourcesOpen(true);
   };
+
+  const handleFlashcardsClick = async (topic: CalendarEvent) => {
+    if (!user) {
+      toast.error("You must be logged in to use flashcards");
+      return;
+    }
+    
+    setSelectedTopic(topic);
+    setFlashcardsOpen(true);
+    
+    // Fetch existing flashcards for this topic
+    await fetchSavedFlashcards(topic.id);
+  };
+
+  const fetchSavedFlashcards = async (topicId: string) => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('flashcards')
+        .select('*')
+        .eq('topic_id', topicId)
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      
+      setSavedFlashcards(data || []);
+    } catch (error) {
+      console.error("Error fetching flashcards:", error);
+      toast.error("Failed to load flashcards");
+    }
+  };
+
+  const generateFlashcards = async () => {
+    if (!selectedTopic || !user) return;
+    
+    setIsGeneratingFlashcards(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-flashcards', {
+        body: {
+          topic: selectedTopic.title,
+          content: selectedTopic.description || "",
+          userId: user.id
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data && data.flashcards && Array.isArray(data.flashcards)) {
+        const mappedFlashcards: Flashcard[] = data.flashcards.map(card => ({
+          ...card,
+          topic_id: selectedTopic.id
+        }));
+        
+        setGeneratedFlashcards(mappedFlashcards);
+      } else {
+        throw new Error("Invalid response format from flashcards generator");
+      }
+    } catch (error) {
+      console.error("Error generating flashcards:", error);
+      toast.error("Failed to generate flashcards");
+    } finally {
+      setIsGeneratingFlashcards(false);
+    }
+  };
+
+  const saveFlashcards = async () => {
+    if (!selectedTopic || !user || generatedFlashcards.length === 0) return;
+    
+    try {
+      const flashcardsToInsert = generatedFlashcards.map(card => ({
+        topic_id: selectedTopic.id,
+        user_id: user.id,
+        term: card.term,
+        definition: card.definition
+      }));
+      
+      const { data, error } = await supabase
+        .from('flashcards')
+        .insert(flashcardsToInsert)
+        .select();
+      
+      if (error) throw error;
+      
+      toast.success("Flashcards saved successfully");
+      
+      // Update the saved flashcards list
+      await fetchSavedFlashcards(selectedTopic.id);
+      
+      // Clear generated flashcards
+      setGeneratedFlashcards([]);
+    } catch (error) {
+      console.error("Error saving flashcards:", error);
+      toast.error("Failed to save flashcards");
+    }
+  };
+
+  useEffect(() => {
+    if (flashcardsOpen && selectedTopic && (generatedFlashcards.length === 0) && (savedFlashcards.length === 0)) {
+      generateFlashcards();
+    }
+  }, [flashcardsOpen, selectedTopic]);
 
   const handleRescheduleSubmit = () => {
     const topic = selectedDateEvents.find(e => e.id === editTopicId);
@@ -141,18 +253,35 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
               onRescheduleClick={handleRescheduleClick}
               onQuizClick={handleQuizClick}
               onResourcesClick={handleResourcesClick}
+              onFlashcardsClick={handleFlashcardsClick}
             />
           )}
         </DialogContent>
       </Dialog>
 
       {selectedTopic && (
-        <ResourcesDialog
-          open={resourcesOpen}
-          onOpenChange={setResourcesOpen}
-          topicTitle={selectedTopic.title}
-          resources={selectedTopic.resources}
-        />
+        <>
+          <ResourcesDialog
+            open={resourcesOpen}
+            onOpenChange={setResourcesOpen}
+            topicTitle={selectedTopic.title}
+            resources={selectedTopic.resources}
+          />
+          
+          <FlashcardsDialog
+            open={flashcardsOpen}
+            onOpenChange={setFlashcardsOpen}
+            topicId={selectedTopic.id}
+            topicTitle={selectedTopic.title}
+            topicDescription={selectedTopic.description}
+            generatedFlashcards={generatedFlashcards}
+            savedFlashcards={savedFlashcards}
+            onSaveFlashcards={saveFlashcards}
+            isGenerating={isGeneratingFlashcards}
+            isUpdating={isUpdating}
+            onRegenerateFlashcards={generateFlashcards}
+          />
+        </>
       )}
     </>
   );

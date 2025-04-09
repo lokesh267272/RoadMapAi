@@ -13,6 +13,7 @@ interface TopicsListProps {
   onRescheduleClick: (topic: CalendarEvent) => void;
   onQuizClick: (topic: CalendarEvent) => void;
   onResourcesClick: (topic: CalendarEvent) => void;
+  onFlashcardsClick: (topic: CalendarEvent) => void;
 }
 
 const TopicsList: React.FC<TopicsListProps> = ({
@@ -24,7 +25,8 @@ const TopicsList: React.FC<TopicsListProps> = ({
   onEditClick,
   onRescheduleClick,
   onQuizClick,
-  onResourcesClick
+  onResourcesClick,
+  onFlashcardsClick
 }) => {
   if (events.length === 0) {
     return (
@@ -48,6 +50,7 @@ const TopicsList: React.FC<TopicsListProps> = ({
           onReschedule={() => onRescheduleClick(event)}
           onQuiz={() => onQuizClick(event)}
           onResources={() => onResourcesClick(event)}
+          onFlashcards={() => onFlashcardsClick(event)}
         />
       ))}
     </div>

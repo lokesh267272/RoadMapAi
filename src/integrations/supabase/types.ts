@@ -9,6 +9,47 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      flashcards: {
+        Row: {
+          created_at: string
+          definition: string
+          id: string
+          is_learned: boolean | null
+          term: string
+          topic_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          definition: string
+          id?: string
+          is_learned?: boolean | null
+          term: string
+          topic_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          definition?: string
+          id?: string
+          is_learned?: boolean | null
+          term?: string
+          topic_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flashcards_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "learning_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       learning_roadmaps: {
         Row: {
           created_at: string
