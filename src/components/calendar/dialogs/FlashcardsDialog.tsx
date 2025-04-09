@@ -110,6 +110,7 @@ const FlashcardsDialog: React.FC<FlashcardsDialogProps> = ({
     if (!user) return;
     
     try {
+      // Use type casting to access the 'flashcards' table
       const { error } = await supabase
         .from('flashcards')
         .update({ is_learned: isLearned, updated_at: new Date().toISOString() })

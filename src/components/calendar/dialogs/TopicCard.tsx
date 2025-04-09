@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Edit, ArrowRight, Book, ChevronUp, ChevronDown, FileText } from "lucide-react";
+import { Edit, ArrowRight, Book, ChevronUp, ChevronDown, FileText, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -19,6 +19,7 @@ interface TopicCardProps {
   onReschedule: () => void;
   onQuiz: () => void;
   onResources: () => void;
+  onFlashcards: () => void;
 }
 
 const TopicCard: React.FC<TopicCardProps> = ({
@@ -30,7 +31,8 @@ const TopicCard: React.FC<TopicCardProps> = ({
   onEdit,
   onReschedule,
   onQuiz,
-  onResources
+  onResources,
+  onFlashcards
 }) => {
   const hasResources = event.resources && event.resources.length > 0;
   
@@ -129,6 +131,15 @@ const TopicCard: React.FC<TopicCardProps> = ({
         >
           <Book className="mr-1 h-3 w-3" />
           AI Quiz
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onFlashcards}
+          className="text-xs"
+        >
+          <Brain className="mr-1 h-3 w-3" />
+          Flashcards
         </Button>
       </div>
     </div>

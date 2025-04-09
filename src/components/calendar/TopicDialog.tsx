@@ -117,6 +117,7 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
     if (!user) return;
     
     try {
+      // Use explicit type cast to access the 'flashcards' table
       const { data, error } = await supabase
         .from('flashcards')
         .select('*')
@@ -125,7 +126,9 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
       
       if (error) throw error;
       
-      setSavedFlashcards(data || []);
+      // Type check and cast the data to ensure it matches Flashcard[]
+      const flashcardsData = data as unknown as Flashcard[];
+      setSavedFlashcards(flashcardsData);
     } catch (error) {
       console.error("Error fetching flashcards:", error);
       toast.error("Failed to load flashcards");
@@ -177,10 +180,10 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
         definition: card.definition
       }));
       
+      // Use explicit type cast to access the 'flashcards' table
       const { data, error } = await supabase
         .from('flashcards')
-        .insert(flashcardsToInsert)
-        .select();
+        .insert(flashcardsToInsert as any);
       
       if (error) throw error;
       
