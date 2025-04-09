@@ -149,41 +149,19 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
         }
       });
       
-      if (error) {
-        console.error("Error calling generate-flashcards function:", error);
-        toast.error("Failed to generate flashcards: " + error.message);
-        throw error;
-      }
-      
-      // If there was an error inside the function but it returned a 200 status
-      if (data && data.error) {
-        console.error("Error from generate-flashcards function:", data.error);
-        toast.error(data.error);
-        
-        // If we received sample flashcards despite the error, show them
-        if (data.flashcards && Array.isArray(data.flashcards) && data.flashcards.length > 0) {
-          const mappedFlashcards: Flashcard[] = data.flashcards.map((card: any) => ({
-            ...card,
-            topic_id: selectedTopic.id
-          }));
-          
-          setGeneratedFlashcards(mappedFlashcards);
-        }
-        return;
-      }
+      if (error) throw error;
       
       if (data && data.flashcards && Array.isArray(data.flashcards)) {
-        const mappedFlashcards: Flashcard[] = data.flashcards.map((card: any) => ({
+        const mappedFlashcards: Flashcard[] = data.flashcards.map(card => ({
           ...card,
           topic_id: selectedTopic.id
         }));
         
         setGeneratedFlashcards(mappedFlashcards);
-        toast.success("Flashcards generated successfully!");
       } else {
         throw new Error("Invalid response format from flashcards generator");
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error generating flashcards:", error);
       toast.error("Failed to generate flashcards");
     } finally {

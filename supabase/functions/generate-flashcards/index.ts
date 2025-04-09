@@ -26,17 +26,9 @@ serve(async (req) => {
     }
 
     if (!GEMINI_API_KEY) {
-      console.error("GEMINI_API_KEY is not configured");
       return new Response(
-        JSON.stringify({ 
-          error: "API key not configured",
-          flashcards: [
-            { term: "Sample Term 1", definition: "This is a sample flashcard. The Gemini API key is not configured." },
-            { term: "Sample Term 2", definition: "Please configure the GEMINI_API_KEY in your Supabase project settings." },
-            { term: "Sample Term 3", definition: "Once configured, real flashcards will be generated based on your topics." }
-          ]
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "API key not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -58,8 +50,6 @@ Structure the response in this valid JSON format:
 }
 
 Avoid markdown, do not add extra text. The flashcards should be beginner-friendly and related only to this topic.`;
-
-    console.log("Calling Gemini API with prompt", prompt.substring(0, 100) + "...");
 
     // Call Gemini API
     const response = await fetch(
@@ -89,16 +79,10 @@ Avoid markdown, do not add extra text. The flashcards should be beginner-friendl
       }
     );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Gemini API error:", response.status, errorText);
-      throw new Error(`Gemini API error: ${response.status} ${errorText}`);
-    }
-
     const responseData = await response.json();
     
     // Log for debugging
-    console.log("Gemini API response status:", response.status);
+    console.log("Gemini API response:", JSON.stringify(responseData));
     
     // Extract the text response from Gemini
     let textResponse = "";
@@ -122,14 +106,8 @@ Avoid markdown, do not add extra text. The flashcards should be beginner-friendl
     } catch (error) {
       console.error("Error parsing flashcards:", error);
       return new Response(
-        JSON.stringify({ 
-          error: "Failed to parse flashcards from API response",
-          flashcards: [
-            { term: "Error", definition: "Failed to parse the AI response into flashcards." },
-            { term: "Reason", definition: error.message || "Unknown parsing error" }
-          ]
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Failed to parse flashcards from API response" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -140,15 +118,8 @@ Avoid markdown, do not add extra text. The flashcards should be beginner-friendl
   } catch (error) {
     console.error("Error in generate-flashcards function:", error);
     return new Response(
-      JSON.stringify({ 
-        error: error.message || "Failed to generate flashcards",
-        flashcards: [
-          { term: "Error Occurred", definition: "An error occurred while generating flashcards." },
-          { term: "Details", definition: error.message || "Unknown error" },
-          { term: "Suggestion", definition: "Please try again or use a different topic." }
-        ]
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: error.message || "Failed to generate flashcards" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
