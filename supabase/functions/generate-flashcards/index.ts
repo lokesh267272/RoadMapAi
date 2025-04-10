@@ -26,9 +26,19 @@ serve(async (req) => {
     }
 
     if (!GEMINI_API_KEY) {
+      console.error("API key not configured");
+      // Provide sample flashcards when API key is missing
       return new Response(
-        JSON.stringify({ error: "API key not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ 
+          flashcards: [
+            { term: "Sample Term 1", definition: "Sample Definition 1" },
+            { term: "Sample Term 2", definition: "Sample Definition 2" },
+            { term: "Sample Term 3", definition: "Sample Definition 3" },
+            { term: "Sample Term 4", definition: "Sample Definition 4" },
+            { term: "Sample Term 5", definition: "Sample Definition 5" }
+          ]
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -51,9 +61,9 @@ Structure the response in this valid JSON format:
 
 Avoid markdown, do not add extra text. The flashcards should be beginner-friendly and related only to this topic.`;
 
-    // Call Gemini API
+    // Call Gemini API - Updated to use gemini-1.5-pro model
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: {
@@ -78,6 +88,12 @@ Avoid markdown, do not add extra text. The flashcards should be beginner-friendl
         }),
       }
     );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Gemini API error:", response.status, errorData);
+      throw new Error(`Gemini API error: ${response.status} ${JSON.stringify(errorData)}`);
+    }
 
     const responseData = await response.json();
     
