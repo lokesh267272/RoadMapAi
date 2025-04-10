@@ -95,52 +95,54 @@ const TopicCard: React.FC<TopicCardProps> = ({
         )}
       </div>
       
-      <div className="flex items-center justify-end space-x-2 px-4 py-3 bg-background/10 border-t">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onEdit}
-          className="text-xs"
-        >
-          <Edit className="mr-1 h-3 w-3" />
-          Edit
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onReschedule}
-          className="text-xs"
-        >
-          <ArrowRight className="mr-1 h-3 w-3" />
-          Reschedule
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onResources}
-          className="text-xs"
-        >
-          <FileText className="mr-1 h-3 w-3" />
-          Resources
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onQuiz}
-          className="text-xs"
-        >
-          <Book className="mr-1 h-3 w-3" />
-          AI Quiz
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onFlashcards}
-          className="text-xs"
-        >
-          <Brain className="mr-1 h-3 w-3" />
-          Flashcards
-        </Button>
+      <div className="bg-background/10 border-t p-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onEdit}
+            className="w-full text-xs"
+          >
+            <Edit className="mr-1 h-3 w-3" />
+            Edit
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onReschedule}
+            className="w-full text-xs"
+          >
+            <ArrowRight className="mr-1 h-3 w-3" />
+            Reschedule
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onResources}
+            className="w-full text-xs"
+          >
+            <FileText className="mr-1 h-3 w-3" />
+            Resources
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onQuiz}
+            className="w-full text-xs"
+          >
+            <Book className="mr-1 h-3 w-3" />
+            AI Quiz
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onFlashcards}
+            className="w-full text-xs col-span-1 sm:col-span-1"
+          >
+            <Brain className="mr-1 h-3 w-3" />
+            Flashcards
+          </Button>
+        </div>
       </div>
     </div>
   );
