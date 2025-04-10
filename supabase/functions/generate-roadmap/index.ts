@@ -68,22 +68,19 @@ serve(async (req) => {
                 "url": "https://youtube.com/..."
               }
             ]
-          },
-          ...and so on for each day
+          }
         ]
       }
       
-      For each topic, include at least 3 learning resources with the following types:
-      - "doc": Official documentation, guides, or articles
-      - "video": Educational YouTube videos or courses
-      - "blog": Blog posts or tutorials
-      - "tool": Relevant tools or applications
+      Important: You must return ONLY a valid JSON object with nothing else before or after.
+      Do not include any markdown formatting, code blocks, or explanatory text.
+      Your entire response must be parseable as JSON.
       
-      Provide actual, real, and useful resources with accurate URLs that would help someone learn the topic.
-      
-      Do not include any explanations, markdown, or text outside of the JSON structure.
+      Remember the roadmap should adapt to exactly ${duration || 30} days - no more, no less.
+      For each topic, include at least 2-3 learning resources with accurate URLs.
       Ensure each day has a clear learning objective that builds on previous days.
-      The roadmap should be comprehensive, practical, and follow a logical progression.
+      
+      Response must be valid JSON with no trailing commas or other syntax errors.
     `;
 
     console.log("Sending request to Gemini API...");
@@ -127,21 +124,81 @@ serve(async (req) => {
       throw new Error("Unexpected response from Gemini API");
     }
 
-    // Extract the JSON string from the response
+    // Extract the JSON string from the response with improved error handling
     let roadmapData;
     try {
       const textContent = data.candidates[0].content.parts[0].text;
       // Try to extract JSON if wrapped in backticks or other markdown
-      const jsonMatch = textContent.match(/```json\s*([\s\S]*?)\s*```/) || 
-                         textContent.match(/```\s*([\s\S]*?)\s*```/) ||
-                         [null, textContent];
+      console.log("Processing text content...");
       
-      const jsonStr = jsonMatch[1].trim();
+      // Clean up the response to handle potential markdown or text formatting
+      let jsonStr = textContent.trim();
+      
+      // Remove markdown code block syntax if present
+      jsonStr = jsonStr.replace(/^```json\s*/g, '').replace(/^```\s*/g, '').replace(/\s*```$/g, '');
+      
+      // Remove any potential text before or after the JSON
+      const jsonStartPos = jsonStr.indexOf('{');
+      const jsonEndPos = jsonStr.lastIndexOf('}') + 1;
+      
+      if (jsonStartPos !== -1 && jsonEndPos !== 0) {
+        jsonStr = jsonStr.substring(jsonStartPos, jsonEndPos);
+      }
+      
+      // Fix common JSON syntax errors that might occur
+      jsonStr = jsonStr
+        .replace(/,\s*}/g, '}')  // Remove trailing commas in objects
+        .replace(/,\s*\]/g, ']') // Remove trailing commas in arrays
+        .replace(/\\/g, '\\\\')  // Escape backslashes
+        .replace(/\\"/g, '\\\\"'); // Fix double quotes
+      
+      console.log("Attempting to parse JSON...");
       roadmapData = JSON.parse(jsonStr);
       
       console.log("Successfully parsed roadmap data");
+      
+      // Ensure the expected structure exists
+      if (!roadmapData.title || !roadmapData.topics || !Array.isArray(roadmapData.topics)) {
+        console.error("Invalid roadmap data structure:", roadmapData);
+        throw new Error("The generated roadmap doesn't have the expected structure");
+      }
+      
+      // Fix day numbers if needed
+      if (roadmapData.topics.length > 0) {
+        roadmapData.topics = roadmapData.topics.map((topic, index) => ({
+          ...topic,
+          day: topic.day || index + 1
+        }));
+      }
+      
+      // Ensure we have the right number of days
+      const actualDuration = parseInt(duration) || 30;
+      if (roadmapData.topics.length < actualDuration) {
+        console.log(`Topics length (${roadmapData.topics.length}) less than duration (${actualDuration}), padding...`);
+        // Add more days if we have fewer than requested
+        for (let i = roadmapData.topics.length + 1; i <= actualDuration; i++) {
+          roadmapData.topics.push({
+            day: i,
+            topic: `Day ${i}: Continue Learning`,
+            content: `Continue building on your knowledge from previous days.`,
+            resources: [
+              {
+                type: "doc",
+                title: "Practice Exercises",
+                url: "https://www.google.com/search?q=" + encodeURIComponent(`${goal} practice exercises`)
+              }
+            ]
+          });
+        }
+      } else if (roadmapData.topics.length > actualDuration) {
+        console.log(`Topics length (${roadmapData.topics.length}) more than duration (${actualDuration}), trimming...`);
+        // Trim if we have more days than requested
+        roadmapData.topics = roadmapData.topics.slice(0, actualDuration);
+      }
+      
     } catch (parseError) {
       console.error("Failed to parse Gemini response as JSON:", parseError);
+      console.error("Raw response text:", data.candidates[0].content.parts[0].text);
       throw new Error("Failed to parse the generated roadmap data");
     }
 
@@ -151,7 +208,18 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in generate-roadmap function:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Failed to generate roadmap" }),
+      JSON.stringify({ 
+        error: error.message || "Failed to generate roadmap",
+        fallback: {
+          title: "Learning Plan",
+          topics: Array.from({ length: parseInt(req.duration) || 30 }, (_, i) => ({
+            day: i + 1,
+            topic: `Day ${i + 1}`,
+            content: "Content will be available soon.",
+            resources: []
+          }))
+        }
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

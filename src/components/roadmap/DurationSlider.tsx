@@ -23,6 +23,7 @@ const DurationSlider: FC<DurationSliderProps> = ({ value, onChange }) => {
         step={1}
         value={value}
         onValueChange={onChange}
+        aria-label="Learning roadmap duration in days"
       />
       <div className="flex justify-between text-xs text-muted-foreground">
         <span>1 week</span>
