@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Flashcard } from "../types";
 import { Card } from "@/components/ui/card";
-import { Check, X, RotateCw, Brain } from "lucide-react";
+import { Check, X, RotateCw, Brain, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,20 +19,24 @@ import { useAuth } from "@/hooks/useAuth";
 interface FlashcardItemProps {
   flashcard: Flashcard;
   onToggleLearn: (id: string, isLearned: boolean) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
   isUpdating: boolean;
 }
 
-const FlashcardItem: React.FC<FlashcardItemProps> = ({ flashcard, onToggleLearn, isUpdating }) => {
+const FlashcardItem: React.FC<FlashcardItemProps> = ({ flashcard, onToggleLearn, onDelete, isUpdating }) => {
   const [flipped, setFlipped] = useState(false);
 
   return (
     <div 
       className="relative mb-4 h-48 perspective" 
-      onClick={() => setFlipped(!flipped)}
     >
-      <div className={`w-full h-full transition-transform duration-500 transform-style-preserve-3d ${flipped ? 'rotate-y-180' : ''}`}>
+      <div 
+        className={`w-full h-full transition-transform duration-500 ${flipped ? 'rotate-y-180' : ''}`}
+        style={{ transformStyle: 'preserve-3d' }}
+        onClick={() => setFlipped(!flipped)}
+      >
         {/* Front side */}
-        <Card className="absolute w-full h-full flex flex-col p-4 backface-hidden cursor-pointer">
+        <Card className="absolute w-full h-full flex flex-col p-4 cursor-pointer" style={{ backfaceVisibility: 'hidden' }}>
           <div className="text-xl font-semibold flex-1 flex items-center justify-center">
             {flashcard.term}
           </div>
@@ -40,7 +44,10 @@ const FlashcardItem: React.FC<FlashcardItemProps> = ({ flashcard, onToggleLearn,
         </Card>
         
         {/* Back side */}
-        <Card className="absolute w-full h-full flex flex-col p-4 backface-hidden rotate-y-180 cursor-pointer">
+        <Card 
+          className="absolute w-full h-full flex flex-col p-4 cursor-pointer" 
+          style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+        >
           <div className="text-md flex-1 flex items-center justify-center overflow-auto">
             {flashcard.definition}
           </div>
@@ -48,31 +55,49 @@ const FlashcardItem: React.FC<FlashcardItemProps> = ({ flashcard, onToggleLearn,
         </Card>
       </div>
       
-      {/* Mark as learned button */}
-      {flashcard.id && (
-        <Button
-          size="sm"
-          variant={flashcard.is_learned ? "default" : "outline"}
-          className="absolute bottom-2 right-2 z-10"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleLearn(flashcard.id!, !flashcard.is_learned!);
-          }}
-          disabled={isUpdating}
-        >
-          {flashcard.is_learned ? (
-            <>
-              <Check className="h-4 w-4 mr-1" />
-              Learned
-            </>
-          ) : (
-            <>
-              <Brain className="h-4 w-4 mr-1" />
-              Mark Learned
-            </>
-          )}
-        </Button>
-      )}
+      {/* Control buttons */}
+      <div className="absolute bottom-2 right-2 z-10 flex space-x-2">
+        {/* Mark as learned button */}
+        {flashcard.id && (
+          <Button
+            size="sm"
+            variant={flashcard.is_learned ? "default" : "outline"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleLearn(flashcard.id!, !flashcard.is_learned!);
+            }}
+            disabled={isUpdating}
+          >
+            {flashcard.is_learned ? (
+              <>
+                <Check className="h-4 w-4 mr-1" />
+                Learned
+              </>
+            ) : (
+              <>
+                <Brain className="h-4 w-4 mr-1" />
+                Mark Learned
+              </>
+            )}
+          </Button>
+        )}
+        
+        {/* Delete button - only for saved flashcards */}
+        {flashcard.id && onDelete && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-destructive border-destructive hover:bg-destructive/10"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(flashcard.id!);
+            }}
+            disabled={isUpdating}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
     </div>
   );
 };
@@ -105,6 +130,7 @@ const FlashcardsDialog: React.FC<FlashcardsDialogProps> = ({
   onRegenerateFlashcards
 }) => {
   const { user } = useAuth();
+  const [deletingCardId, setDeletingCardId] = useState<string | null>(null);
   
   const handleToggleLearn = async (id: string, isLearned: boolean) => {
     if (!user) return;
@@ -128,6 +154,33 @@ const FlashcardsDialog: React.FC<FlashcardsDialogProps> = ({
     } catch (error) {
       console.error("Error updating flashcard:", error);
       toast.error("Failed to update flashcard");
+    }
+  };
+  
+  const handleDeleteFlashcard = async (id: string) => {
+    if (!user) return;
+    
+    try {
+      setDeletingCardId(id);
+      
+      // Delete the flashcard from the database
+      const { error } = await supabase
+        .from('flashcards')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      
+      // Update the local state - filter out the deleted flashcard
+      const updatedFlashcards = savedFlashcards.filter(card => card.id !== id);
+      
+      toast.success("Flashcard deleted successfully");
+    } catch (error) {
+      console.error("Error deleting flashcard:", error);
+      toast.error("Failed to delete flashcard");
+    } finally {
+      setDeletingCardId(null);
     }
   };
   
@@ -205,7 +258,8 @@ const FlashcardsDialog: React.FC<FlashcardsDialogProps> = ({
                     key={flashcard.id} 
                     flashcard={flashcard} 
                     onToggleLearn={handleToggleLearn}
-                    isUpdating={isUpdating}
+                    onDelete={handleDeleteFlashcard}
+                    isUpdating={isUpdating || deletingCardId === flashcard.id}
                   />
                 ))}
               </div>

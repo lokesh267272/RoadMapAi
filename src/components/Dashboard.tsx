@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -276,6 +277,27 @@ const DashboardComponent = ({ initialTab }: DashboardProps) => {
     
     setIsDeleting(true);
     try {
+      // First, get all topics related to this roadmap
+      const { data: topicsData, error: topicsQueryError } = await supabase
+        .from('learning_topics')
+        .select('id')
+        .eq('roadmap_id', roadmapToDelete);
+      
+      if (topicsQueryError) throw topicsQueryError;
+      
+      const topicIds = topicsData.map(topic => topic.id);
+      
+      // If there are topics with potential flashcards, delete the flashcards first
+      if (topicIds.length > 0) {
+        const { error: flashcardsError } = await supabase
+          .from('flashcards')
+          .delete()
+          .in('topic_id', topicIds);
+        
+        if (flashcardsError) throw flashcardsError;
+      }
+      
+      // Now delete the topics
       const { error: topicsError } = await supabase
         .from('learning_topics')
         .delete()
@@ -283,6 +305,7 @@ const DashboardComponent = ({ initialTab }: DashboardProps) => {
       
       if (topicsError) throw topicsError;
       
+      // Finally delete the roadmap
       const { error: roadmapError } = await supabase
         .from('learning_roadmaps')
         .delete()
