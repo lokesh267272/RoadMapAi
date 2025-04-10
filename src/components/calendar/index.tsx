@@ -10,17 +10,29 @@ import TopicDialog from "./TopicDialog";
 import CalendarStats from "./CalendarStats";
 import { Topic, CalendarViewProps, CalendarEvent } from "./types";
 
-const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
+interface EnhancedCalendarViewProps extends CalendarViewProps {
+  initialDialogOpen?: boolean;
+  initialSelectedDate?: Date;
+  initialTopicId?: string;
+}
+
+const CalendarView = ({ 
+  selectedRoadmapId, 
+  topics, 
+  initialDialogOpen = false, 
+  initialSelectedDate, 
+  initialTopicId 
+}: EnhancedCalendarViewProps) => {
   const [date, setDate] = useState<Date>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialSelectedDate || new Date());
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(initialDialogOpen);
   const [editMode, setEditMode] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
-  const [editTopicId, setEditTopicId] = useState("");
+  const [editTopicId, setEditTopicId] = useState(initialTopicId || "");
   const [rescheduleMode, setRescheduleMode] = useState(false);
   const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(undefined);
   const [streak, setStreak] = useState(0);
@@ -78,6 +90,16 @@ const CalendarView = ({ selectedRoadmapId, topics }: CalendarViewProps) => {
     
     fetchAllEvents();
   }, [selectedRoadmapId, topics]);
+
+  // Effect to highlight the initial topic if one is provided
+  useEffect(() => {
+    if (initialTopicId && calendarEvents.length > 0) {
+      const topic = calendarEvents.find(event => event.id === initialTopicId);
+      if (topic) {
+        setSelectedDate(topic.date);
+      }
+    }
+  }, [initialTopicId, calendarEvents]);
 
   const selectedDateEvents = selectedDate 
     ? calendarEvents.filter(event => 

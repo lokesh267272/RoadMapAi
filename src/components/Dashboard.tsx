@@ -56,6 +56,11 @@ const DashboardComponent = ({ initialTab }: DashboardProps) => {
   const { user, isLoading: authLoading } = useAuth();
   const [roadmapToDelete, setRoadmapToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // New state for topic dialog functionality
+  const [topicDialogOpen, setTopicDialogOpen] = useState(false);
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
+  const [selectedTopicDate, setSelectedTopicDate] = useState<Date | null>(null);
 
   useEffect(() => {
     if (initialTab) {
@@ -254,8 +259,24 @@ const DashboardComponent = ({ initialTab }: DashboardProps) => {
     const nextTopic = roadmapTopics.find(topic => !topic.completed);
     
     if (nextTopic) {
+      // Set the roadmap ID for the calendar view
       setSelectedRoadmap(roadmapId);
-      setActiveTab("progress");
+      
+      // Store the topic ID and its date
+      setSelectedTopicId(nextTopic.id);
+      
+      // Calculate the date for this topic (we need to get the actual date from day_number)
+      const startDate = new Date();
+      startDate.setHours(0, 0, 0, 0);
+      const topicDate = new Date(startDate);
+      topicDate.setDate(startDate.getDate() + (nextTopic.day_number - 1));
+      setSelectedTopicDate(topicDate);
+      
+      // Set topic dialog to open when we switch to calendar tab
+      setTopicDialogOpen(true);
+      
+      // Switch to calendar tab to show the topic
+      setActiveTab("calendar");
       
       toast.info(`Next topic: ${nextTopic.title}`);
     } else {
@@ -490,7 +511,13 @@ const DashboardComponent = ({ initialTab }: DashboardProps) => {
         </TabsContent>
 
         <TabsContent value="calendar">
-          <CalendarView selectedRoadmapId={selectedRoadmap} topics={topics} />
+          <CalendarView 
+            selectedRoadmapId={selectedRoadmap} 
+            topics={topics} 
+            initialDialogOpen={topicDialogOpen}
+            initialSelectedDate={selectedTopicDate || undefined}
+            initialTopicId={selectedTopicId || undefined}
+          />
         </TabsContent>
 
         <TabsContent value="progress">
