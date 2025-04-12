@@ -41,6 +41,8 @@ Based on the above, adjust the roadmap as follows:
 - Add a small project or assignment every 7th day to consolidate learning and apply knowledge in real-world scenarios.
 - Avoid generic or vague entries like "Continue Learning". Each day should have a clear, unique topic.
 - The learning should progress logically, with each day introducing a distinct concept, skill, or challenge.
+- Generate a roadmap as valid JSON only (no explanations), strictly inside one JSON block. Keep it concise, and don't add summaries or markdown outside JSON.
+
 
 Each day must include:
 - A specific topic title
