@@ -44,11 +44,19 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
       if (isAIGenerated) {
         // Use AI to generate roadmap
         setGenerationProgress(30);
-        console.log("Calling generate-roadmap function with:", { goal: learningGoal, duration: duration[0] });
+        console.log("Calling generate-roadmap function with:", { 
+          goal: learningGoal, 
+          duration: duration[0],
+          description: description
+        });
         
         // Call the Supabase Edge Function to generate roadmap
         const { data: aiData, error: aiFunctionError } = await supabase.functions.invoke('generate-roadmap', {
-          body: { goal: learningGoal, duration: duration[0] }
+          body: { 
+            goal: learningGoal, 
+            duration: duration[0],
+            description: description
+          }
         });
         
         if (aiFunctionError) {
