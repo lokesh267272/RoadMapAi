@@ -1,14 +1,21 @@
-
 import React from "react";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface CalendarStatsProps {
   streak: number;
   completionRate: number;
+  needsCompletion: boolean;
+  streakStatus: string;
 }
 
-const CalendarStats: React.FC<CalendarStatsProps> = ({ streak, completionRate }) => {
+const CalendarStats: React.FC<CalendarStatsProps> = ({ 
+  streak, 
+  completionRate,
+  needsCompletion,
+  streakStatus 
+}) => {
   return (
     <Card className="bg-glass shadow">
       <CardContent className="p-4">
@@ -18,6 +25,12 @@ const CalendarStats: React.FC<CalendarStatsProps> = ({ streak, completionRate })
             <div className="flex items-baseline">
               <span className="text-2xl font-bold mr-1">{streak}</span>
               <span className="text-sm text-muted-foreground">days</span>
+            </div>
+            <div className={cn(
+              "text-xs",
+              needsCompletion ? "text-amber-500" : "text-muted-foreground"
+            )}>
+              {streakStatus}
             </div>
           </div>
           

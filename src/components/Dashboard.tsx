@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,6 +19,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { calculateStreak, needsToCompleteToday, getStreakStatus, StreakEvent } from "@/utils/streak";
+import { cn } from "@/lib/utils";
 
 interface Roadmap {
   id: string;
@@ -51,6 +52,8 @@ const DashboardComponent = ({ initialTab }: DashboardProps) => {
   const [selectedRoadmap, setSelectedRoadmap] = useState<string | null>(null);
   const [selectedRoadmapForProgress, setSelectedRoadmapForProgress] = useState<string | null>(null);
   const [streak, setStreak] = useState(0);
+  const [needsCompletion, setNeedsCompletion] = useState(false);
+  const [lastCompletedDate, setLastCompletedDate] = useState<Date | null>(null);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
@@ -112,7 +115,7 @@ const DashboardComponent = ({ initialTab }: DashboardProps) => {
           }
           
           setTopics(topicsData);
-          calculateStreak(topicsData);
+          calculateStreakAndStatus(topicsData);
         }
       } catch (error: any) {
         console.error("Error fetching roadmaps:", error);
@@ -160,61 +163,29 @@ const DashboardComponent = ({ initialTab }: DashboardProps) => {
     };
   }, [user, authLoading, navigate, setSearchParams]);
 
-  const calculateStreak = (topicsData: Record<string, Topic[]>) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const allCompletedTopics: Topic[] = [];
+  const calculateStreakAndStatus = (topicsData: Record<string, Topic[]>) => {
+    const allCompletedTopics: StreakEvent[] = [];
     Object.values(topicsData).forEach(roadmapTopics => {
-      allCompletedTopics.push(...roadmapTopics.filter(topic => topic.completed));
+      allCompletedTopics.push(...roadmapTopics
+        .filter(topic => topic.completed)
+        .map(topic => ({
+          date: new Date(topic.updated_at),
+          completed: topic.completed
+        }))
+      );
     });
-    
-    allCompletedTopics.sort((a, b) => 
-      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-    );
-    
-    if (allCompletedTopics.length === 0) {
-      setStreak(0);
-      return;
-    }
-    
-    const hasCompletedToday = allCompletedTopics.some(topic => 
-      isToday(new Date(topic.updated_at))
-    );
-    
-    if (!hasCompletedToday) {
-      const yesterday = subDays(today, 1);
-      const hasCompletedYesterday = allCompletedTopics.some(topic => {
-        const completedDate = new Date(topic.updated_at);
-        completedDate.setHours(0, 0, 0, 0);
-        return completedDate.getTime() === yesterday.getTime();
-      });
-      
-      if (!hasCompletedYesterday) {
-        setStreak(0);
-        return;
-      }
-    }
-    
-    let currentStreak = 0;
-    let currentDate = new Date(today);
-    
-    while (true) {
-      const hasCompletedOnDate = allCompletedTopics.some(topic => {
-        const completedDate = new Date(topic.updated_at);
-        completedDate.setHours(0, 0, 0, 0);
-        return completedDate.getTime() === currentDate.getTime();
-      });
-      
-      if (hasCompletedOnDate) {
-        currentStreak++;
-        currentDate = subDays(currentDate, 1);
-      } else {
-        break;
-      }
-    }
-    
+
+    const currentStreak = calculateStreak(allCompletedTopics);
     setStreak(currentStreak);
+
+    if (allCompletedTopics.length > 0) {
+      const lastDate = new Date(Math.max(...allCompletedTopics.map(t => t.date.getTime())));
+      setLastCompletedDate(lastDate);
+      setNeedsCompletion(needsToCompleteToday(currentStreak, lastDate));
+    } else {
+      setLastCompletedDate(null);
+      setNeedsCompletion(false);
+    }
   };
 
   const handleCreateRoadmap = () => {
@@ -486,7 +457,15 @@ const DashboardComponent = ({ initialTab }: DashboardProps) => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{streak} days</div>
+                <div className="space-y-2">
+                  <div className="text-2xl font-bold">{streak} days</div>
+                  <div className={cn(
+                    "text-sm",
+                    needsCompletion ? "text-amber-500" : "text-muted-foreground"
+                  )}>
+                    {getStreakStatus(streak, needsCompletion)}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -15,6 +14,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format, parseISO, startOfWeek, endOfWeek, isSameDay } from "date-fns";
+import { calculateStreak, needsToCompleteToday, getStreakStatus, StreakEvent } from "@/utils/streak";
+import { cn } from "@/lib/utils";
 
 interface Topic {
   id: string;
@@ -24,6 +25,7 @@ interface Topic {
   roadmap_id: string;
   description?: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 interface Roadmap {
@@ -48,6 +50,8 @@ const ProgressTracker = ({ selectedRoadmapId }: ProgressTrackerProps) => {
   const [streak, setStreak] = useState(0);
   const [activeTab, setActiveTab] = useState("overview");
   const { user } = useAuth();
+  const [needsCompletion, setNeedsCompletion] = useState(false);
+  const [lastCompletedDate, setLastCompletedDate] = useState<Date | null>(null);
   
   useEffect(() => {
     if (!selectedRoadmapId) return;
@@ -106,30 +110,26 @@ const ProgressTracker = ({ selectedRoadmapId }: ProgressTrackerProps) => {
         }
         setWeeklyProgress(weekProgress);
         
-        // Calculate streak
-        const sortedTopics = [...topicsData || []].sort((a, b) => {
-          const dateA = new Date();
-          dateA.setDate(dateA.getDate() + (a.day_number - 1));
-          const dateB = new Date();
-          dateB.setDate(dateB.getDate() + (b.day_number - 1));
-          return dateB.getTime() - dateA.getTime(); // Sort in reverse chronological order
-        });
+        // Calculate streak using the new utility
+        const streakEvents: StreakEvent[] = (topicsData || [])
+          .filter(topic => topic.completed)
+          .map(topic => ({
+            date: new Date(topic.updated_at),
+            completed: topic.completed
+          }));
         
-        let currentStreak = 0;
-        for (const topic of sortedTopics) {
-          const topicDate = new Date();
-          topicDate.setDate(topicDate.getDate() + (topic.day_number - 1));
-          
-          if (isSameDay(topicDate, today) || topicDate < today) {
-            if (topic.completed) {
-              currentStreak++;
-            } else {
-              break;
-            }
-          }
-        }
-        
+        const currentStreak = calculateStreak(streakEvents);
         setStreak(currentStreak);
+        
+        // Get the last completed date
+        if (streakEvents.length > 0) {
+          const lastDate = new Date(Math.max(...streakEvents.map(e => e.date.getTime())));
+          setLastCompletedDate(lastDate);
+          setNeedsCompletion(needsToCompleteToday(currentStreak, lastDate));
+        } else {
+          setLastCompletedDate(null);
+          setNeedsCompletion(false);
+        }
       } catch (error) {
         console.error("Error fetching roadmap and topics:", error);
       } finally {
@@ -253,6 +253,12 @@ const ProgressTracker = ({ selectedRoadmapId }: ProgressTrackerProps) => {
                   <div>
                     <div className="text-sm text-muted-foreground">Learning Streak</div>
                     <div className="text-2xl font-bold">{streak} days</div>
+                    <div className={cn(
+                      "text-xs",
+                      needsCompletion ? "text-amber-500" : "text-muted-foreground"
+                    )}>
+                      {getStreakStatus(streak, needsCompletion)}
+                    </div>
                   </div>
                 </div>
               </div>
