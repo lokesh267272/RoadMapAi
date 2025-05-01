@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { isSameDay, isToday, isBefore, parseISO } from "date-fns";
@@ -9,6 +8,7 @@ import { distributeTopicsToCalendar, formatCalendarData } from "./utils";
 import TopicDialog from "./TopicDialog";
 import CalendarStats from "./CalendarStats";
 import { Topic, CalendarViewProps, CalendarEvent } from "./types";
+import { calculateStreak, needsToCompleteToday, getStreakStatus, StreakEvent } from "@/utils/streak";
 
 interface EnhancedCalendarViewProps extends CalendarViewProps {
   initialDialogOpen?: boolean;
@@ -38,6 +38,8 @@ const CalendarView = ({
   const [streak, setStreak] = useState(0);
   const [completionRate, setCompletionRate] = useState(0);
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({});
+  const [needsCompletion, setNeedsCompletion] = useState(false);
+  const [lastCompletedDate, setLastCompletedDate] = useState<Date | null>(null);
 
   const toggleDescription = (id: string) => {
     setExpandedDescriptions(prev => ({
@@ -53,22 +55,32 @@ const CalendarView = ({
     if (allEvents.length > 0) {
       const completedCount = allEvents.filter(event => event.completed).length;
       setCompletionRate(Math.round((completedCount / allEvents.length) * 100));
-    }
-    
-    let currentStreak = 0;
-    const sortedDates = [...allEvents]
-      .filter(event => isBefore(event.date, today) || isSameDay(event.date, today))
-      .sort((a, b) => b.date.getTime() - a.date.getTime());
-    
-    for (const event of sortedDates) {
-      if (event.completed) {
-        currentStreak++;
+      
+      // Calculate streak using the new utility
+      const streakEvents: StreakEvent[] = allEvents.map(event => ({
+        date: event.date,
+        completed: event.completed
+      }));
+      
+      const currentStreak = calculateStreak(streakEvents);
+      setStreak(currentStreak);
+      
+      // Get the last completed date
+      const completedEvents = allEvents.filter(event => event.completed);
+      if (completedEvents.length > 0) {
+        const lastDate = new Date(Math.max(...completedEvents.map(e => e.date.getTime())));
+        setLastCompletedDate(lastDate);
+        setNeedsCompletion(needsToCompleteToday(currentStreak, lastDate));
       } else {
-        break;
+        setLastCompletedDate(null);
+        setNeedsCompletion(false);
       }
+    } else {
+      setStreak(0);
+      setCompletionRate(0);
+      setLastCompletedDate(null);
+      setNeedsCompletion(false);
     }
-    
-    setStreak(currentStreak);
   }, [calendarEvents]);
 
   useEffect(() => {
@@ -234,7 +246,12 @@ const CalendarView = ({
   return (
     <div className="grid grid-cols-1 gap-6 animate-fadeInUp">
       {streak > 0 || completionRate > 0 ? (
-        <CalendarStats streak={streak} completionRate={completionRate} />
+        <CalendarStats 
+          streak={streak} 
+          completionRate={completionRate}
+          needsCompletion={needsCompletion}
+          streakStatus={getStreakStatus(streak, needsCompletion)}
+        />
       ) : null}
       
       <Card className="bg-glass shadow col-span-1">

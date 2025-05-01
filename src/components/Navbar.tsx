@@ -1,13 +1,16 @@
-
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Brain, Calendar, Menu, Target, X } from "lucide-react";
+import { Brain, Calendar, Menu, Target, X, User, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
   // Check if user is on landing page
   const isLandingPage = location.pathname === "/";
@@ -27,6 +30,17 @@ const Navbar = () => {
   }, []);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast.success("Logged out successfully");
+      navigate("/");
+    } catch (error) {
+      console.error("Error logging out:", error);
+      toast.error("Failed to log out");
+    }
+  };
 
   return (
     <header
@@ -72,14 +86,29 @@ const Navbar = () => {
           >
             Progress
           </Link>
-          {isLandingPage ? (
-            <Button asChild className="animate-fadeInUp shadow-md">
-              <Link to="/auth">Get Started</Link>
-            </Button>
+          {user ? (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/dashboard">
+                  <User className="h-4 w-4 mr-2" />
+                  Profile
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           ) : (
-            <Button asChild variant="outline">
-              <Link to="/auth">Sign In</Link>
-            </Button>
+            isLandingPage ? (
+              <Button asChild className="animate-fadeInUp shadow-md">
+                <Link to="/auth">Get Started</Link>
+              </Button>
+            ) : (
+              <Button asChild variant="outline">
+                <Link to="/auth">Sign In</Link>
+              </Button>
+            )
           )}
         </nav>
 
@@ -123,13 +152,40 @@ const Navbar = () => {
               <Target className="h-4 w-4" />
               Progress
             </Link>
-            <Button 
-              asChild 
-              className="w-full"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              <Link to="/auth">Get Started</Link>
-            </Button>
+            {user ? (
+              <>
+                <Button 
+                  asChild 
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Link to="/dashboard">
+                    <User className="h-4 w-4 mr-2" />
+                    Profile
+                  </Link>
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    handleLogout();
+                  }}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <Button 
+                asChild 
+                className="w-full"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Link to="/auth">Get Started</Link>
+              </Button>
+            )}
           </div>
         </div>
       )}
