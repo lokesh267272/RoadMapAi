@@ -5,6 +5,18 @@ import { Loader2, BookOpen } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import remarkGfm from "remark-gfm";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
 
 interface TutorContentProps {
   topicId: string;
@@ -26,6 +38,7 @@ const TutorContent = ({ topicId, topicTitle }: TutorContentProps) => {
     if (!topicId || !topicTitle) return;
     
     setIsLoading(true);
+    setContent(""); // Clear previous content
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-tutor-content", {
@@ -47,120 +60,6 @@ const TutorContent = ({ topicId, topicTitle }: TutorContentProps) => {
     }
   };
 
-  // Parse and render content with special formatting
-  const renderContent = () => {
-    if (!content) return null;
-
-    // Split by code blocks
-    const parts = content.split(/```([\s\S]*?)```/);
-    
-    return parts.map((part, index) => {
-      if (index % 2 === 0) {
-        // Regular text - look for tables
-        if (part.includes("|")) {
-          const lines = part.split('\n');
-          const tableIndices = [];
-          
-          // Find table start and end lines
-          lines.forEach((line, i) => {
-            if (line.trim().startsWith('|') && line.trim().endsWith('|') && line.includes('|')) {
-              tableIndices.push(i);
-            }
-          });
-          
-          // Process tables and regular text
-          let currentPos = 0;
-          const renderedParts = [];
-          
-          for (let i = 0; i < tableIndices.length; i += 3) { // Tables typically have header, separator, and rows
-            if (i + 2 < tableIndices.length) {
-              // Add text before table
-              if (tableIndices[i] > currentPos) {
-                renderedParts.push(
-                  <div key={`text-${index}-${i}`} className="prose max-w-none mb-4"
-                    dangerouslySetInnerHTML={{ __html: lines.slice(currentPos, tableIndices[i]).join('\n') }}
-                  />
-                );
-              }
-              
-              // Add table
-              const tableRows = lines.slice(tableIndices[i], tableIndices[i + 2] + 1);
-              renderedParts.push(renderTable(tableRows, `${index}-${i}`));
-              
-              currentPos = tableIndices[i + 2] + 1;
-            }
-          }
-          
-          // Add remaining text
-          if (currentPos < lines.length) {
-            renderedParts.push(
-              <div key={`text-${index}-${currentPos}`} className="prose max-w-none mb-4"
-                dangerouslySetInnerHTML={{ __html: lines.slice(currentPos).join('\n') }}
-              />
-            );
-          }
-          
-          return renderedParts;
-        }
-        
-        // Regular text without tables
-        return (
-          <div key={`text-${index}`} className="prose max-w-none mb-4"
-            dangerouslySetInnerHTML={{ __html: part }}
-          />
-        );
-      } else {
-        // Code block
-        return (
-          <pre key={`code-${index}`} className="bg-muted p-4 rounded-md overflow-x-auto mb-4">
-            <code>{part}</code>
-          </pre>
-        );
-      }
-    });
-  };
-
-  const renderTable = (tableLines: string[], keyPrefix: string) => {
-    // Process table rows
-    const rows = tableLines.map(line => 
-      line.trim()
-        .replace(/^\||\|$/g, '') // Remove first and last pipe
-        .split('|')
-        .map(cell => cell.trim())
-    );
-    
-    // Skip separator row (typically row 1 with ----)
-    const headerRow = rows[0];
-    const dataRows = rows.slice(2);
-    
-    return (
-      <div className="overflow-x-auto mb-4" key={`table-${keyPrefix}`}>
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              {headerRow.map((cell, i) => (
-                <th key={`th-${keyPrefix}-${i}`} className="border px-4 py-2 text-left bg-muted">
-                  {cell}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {dataRows.map((row, rowIndex) => (
-              <tr key={`tr-${keyPrefix}-${rowIndex}`}>
-                {row.map((cell, cellIndex) => (
-                  <td key={`td-${keyPrefix}-${rowIndex}-${cellIndex}`} className="border px-4 py-2">
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
-
   return (
     <Card className="h-full">
       <CardHeader className="p-4 pb-2">
@@ -173,14 +72,51 @@ const TutorContent = ({ topicId, topicTitle }: TutorContentProps) => {
         </p>
       </CardHeader>
       <Separator />
-      <CardContent className="p-4">
+      <CardContent className="p-4 overflow-auto">
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : topicId ? (
-          <div className="prose max-w-none">
-            {renderContent()}
+          <div className="prose prose-sm max-w-none dark:prose-invert">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                // Custom table rendering
+                table: ({ node, ...props }) => (
+                  <div className="my-4 overflow-x-auto">
+                    <Table {...props} />
+                  </div>
+                ),
+                thead: ({ node, ...props }) => <TableHeader {...props} />,
+                tbody: ({ node, ...props }) => <TableBody {...props} />,
+                tr: ({ node, ...props }) => <TableRow {...props} />,
+                th: ({ node, ...props }) => <TableHead {...props} />,
+                td: ({ node, ...props }) => <TableCell {...props} />,
+                
+                // Code block with syntax highlighting
+                code: ({ node, className, children, ...props }) => {
+                  const match = /language-(\w+)/.exec(className || "");
+                  return match ? (
+                    <SyntaxHighlighter 
+                      style={vscDarkPlus} 
+                      language={match[1]} 
+                      PreTag="div"
+                      className="rounded-md border"
+                      {...props}
+                    >
+                      {String(children).replace(/\n$/, "")}
+                    </SyntaxHighlighter>
+                  ) : (
+                    <code className={cn("bg-muted px-1 py-0.5 rounded text-sm", className)} {...props}>
+                      {children}
+                    </code>
+                  );
+                }
+              }}
+            >
+              {content}
+            </ReactMarkdown>
           </div>
         ) : (
           <div className="text-center text-muted-foreground py-12">

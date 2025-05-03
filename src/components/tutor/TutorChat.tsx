@@ -9,6 +9,10 @@ import { Send, MessageSquare, User, Bot } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import ReactMarkdown from "react-markdown";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import remarkGfm from "remark-gfm";
 
 interface Message {
   id: string;
@@ -136,8 +140,34 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
                       {message.role === "user" ? "You" : "AI Tutor"}
                     </span>
                   </div>
-                  <div className="prose max-w-none whitespace-pre-wrap text-sm" 
-                    dangerouslySetInnerHTML={{ __html: message.content }}></div>
+                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        // Code block with syntax highlighting
+                        code: ({ node, className, children, ...props }) => {
+                          const match = /language-(\w+)/.exec(className || "");
+                          return match ? (
+                            <SyntaxHighlighter 
+                              style={vscDarkPlus} 
+                              language={match[1]} 
+                              PreTag="div"
+                              className="rounded-md border text-xs"
+                              {...props}
+                            >
+                              {String(children).replace(/\n$/, "")}
+                            </SyntaxHighlighter>
+                          ) : (
+                            <code className="bg-muted px-1 py-0.5 rounded text-sm" {...props}>
+                              {children}
+                            </code>
+                          );
+                        }
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               </div>
             ))}
