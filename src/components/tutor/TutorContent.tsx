@@ -81,7 +81,8 @@ const TutorContent = ({ topicId, topicTitle }: TutorContentProps) => {
         ) : topicId ? (
           <div className="prose prose-sm max-w-none dark:prose-invert">
             <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
+              // Use type assertion to fix the remarkGfm type error
+              remarkPlugins={[remarkGfm as any]}
               components={{
                 // Custom table rendering
                 table: ({ node, ...props }) => (
