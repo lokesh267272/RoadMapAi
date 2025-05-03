@@ -42,11 +42,11 @@ const AiTutor = () => {
   }
 
   return (
-    <div className="min-h-screen w-full pt-16 pb-8">
-      <div className="container mx-auto px-2 animate-fadeInUp h-full">
-        <div className="flex flex-col md:flex-row h-[calc(100vh-10rem)] gap-4">
+    <div className="min-h-screen w-full pt-16 pb-8 bg-gradient-to-b from-background to-muted/30">
+      <div className="container mx-auto px-3 animate-fadeInUp h-full">
+        <div className="flex flex-col md:flex-row h-[calc(100vh-10rem)] gap-5">
           {/* Left Panel - Topics */}
-          <div className="w-full md:w-1/5 h-full overflow-hidden shrink-0">
+          <div className="w-full md:w-1/4 h-full overflow-hidden shrink-0">
             <TutorSidebar 
               roadmapId={roadmapId || ""} 
               roadmapTitle={roadmapTitle}
@@ -56,7 +56,7 @@ const AiTutor = () => {
           </div>
           
           {/* Center Panel - Content */}
-          <div className="w-full md:w-2/5 h-full overflow-y-auto bg-background rounded-lg border">
+          <div className="w-full md:w-[40%] h-full overflow-y-auto">
             <TutorContent 
               topicId={topicId || ""} 
               topicTitle={topicTitle || ""} 
@@ -64,7 +64,7 @@ const AiTutor = () => {
           </div>
           
           {/* Right Panel - Chat */}
-          <div className="w-full md:w-2/5 h-full flex flex-col overflow-hidden bg-background rounded-lg border">
+          <div className="w-full md:w-[35%] h-full flex flex-col overflow-hidden">
             <TutorChat 
               topicId={topicId || ""} 
               topicTitle={topicTitle || ""} 

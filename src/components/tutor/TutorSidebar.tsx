@@ -2,11 +2,10 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { RoadmapNode } from "@/components/flowchart/FlowchartTypes";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronRight, GraduationCap } from "lucide-react";
+import { ChevronRight, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Accordion,
@@ -58,39 +57,49 @@ const TutorSidebar = ({ roadmapId, roadmapTitle, nodes, currentTopicId }: TutorS
     .sort((a, b) => a - b);
 
   return (
-    <Card className="h-full">
-      <CardHeader className="p-4 pb-2">
-        <div className="flex items-center mb-1">
-          <GraduationCap className="w-5 h-5 mr-2 text-primary" />
-          <CardTitle className="text-lg">Learning Path</CardTitle>
-        </div>
-        <p className="text-sm text-muted-foreground truncate" title={roadmapTitle}>
+    <Card className="h-full shadow-md">
+      <div className="flex items-center gap-2.5 px-5 py-4">
+        <GraduationCap className="w-5 h-5 text-primary" />
+        <h3 className="text-xl font-semibold tracking-tight truncate" title={roadmapTitle}>
           {roadmapTitle}
-        </p>
-      </CardHeader>
-      <Separator />
+        </h3>
+      </div>
+      
       <CardContent className="p-0">
         <ScrollArea className="h-[calc(100vh-15rem)]">
-          <div className="p-2">
-            <Accordion type="multiple" className="w-full">
+          <div className="px-3 py-2">
+            <Accordion 
+              type="multiple" 
+              className="w-full space-y-1"
+              defaultValue={sortedWeeks.map(week => `week-${week}`)} // Default open
+            >
               {sortedWeeks.map((week) => (
-                <AccordionItem key={`week-${week}`} value={`week-${week}`}>
-                  <AccordionTrigger className="px-2 py-1 hover:no-underline">
-                    <span className="text-sm font-medium">Week {week}</span>
+                <AccordionItem 
+                  key={`week-${week}`} 
+                  value={`week-${week}`}
+                  className="border-0 bg-muted/40 rounded-lg overflow-hidden"
+                >
+                  <AccordionTrigger className="px-3 py-2.5 hover:no-underline font-medium">
+                    <span className="text-sm">Week {week}</span>
                   </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="pl-2">
+                  <AccordionContent className="pb-2 px-2">
+                    <div className="space-y-1">
                       {topicsByWeek[week].map((node) => (
                         <Button
                           key={node.id}
                           variant="ghost"
                           className={cn(
-                            "w-full justify-start text-left mb-1 overflow-hidden",
-                            currentTopicId === node.id && "bg-accent text-accent-foreground"
+                            "w-full justify-start text-left pl-3 transition-all duration-200",
+                            currentTopicId === node.id 
+                              ? "bg-primary/10 font-medium text-primary" 
+                              : "hover:bg-muted"
                           )}
                           onClick={() => handleTopicClick(node.id, node.data?.label || "")}
                         >
-                          <ChevronRight className="w-4 h-4 mr-2 shrink-0" />
+                          <ChevronRight className={cn(
+                            "w-4 h-4 mr-2 shrink-0 transition-transform",
+                            currentTopicId === node.id && "text-primary"
+                          )} />
                           <span className="truncate">{node.data?.label || "Unnamed Topic"}</span>
                         </Button>
                       ))}

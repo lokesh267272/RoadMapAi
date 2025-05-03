@@ -61,36 +61,36 @@ const TutorContent = ({ topicId, topicTitle }: TutorContentProps) => {
   };
 
   return (
-    <Card className="h-full">
-      <CardHeader className="p-4 pb-2">
-        <div className="flex items-center mb-1">
-          <BookOpen className="w-5 h-5 mr-2 text-primary" />
-          <CardTitle className="text-lg">Tutorial</CardTitle>
+    <Card className="h-full flex flex-col shadow-md">
+      <CardHeader className="p-5 pb-3">
+        <div className="flex items-center">
+          <BookOpen className="w-5 h-5 mr-2.5 text-primary" />
+          <CardTitle className="text-xl font-semibold tracking-tight">Tutorial</CardTitle>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground mt-1">
           {topicTitle || "Select a topic to begin learning"}
         </p>
       </CardHeader>
       <Separator />
-      <CardContent className="p-4 overflow-auto">
+      <CardContent className="p-0 flex-1 overflow-auto">
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : topicId ? (
-          <div className="prose prose-sm max-w-none dark:prose-invert">
+          <div className="prose prose-sm max-w-none dark:prose-invert p-6">
             <ReactMarkdown
               components={{
                 // Custom table rendering
                 table: ({ node, ...props }) => (
-                  <div className="my-4 overflow-x-auto">
-                    <Table {...props} />
+                  <div className="my-6 overflow-x-auto">
+                    <Table {...props} className="border rounded-md" />
                   </div>
                 ),
                 thead: ({ node, ...props }) => <TableHeader {...props} />,
                 tbody: ({ node, ...props }) => <TableBody {...props} />,
                 tr: ({ node, ...props }) => <TableRow {...props} />,
-                th: ({ node, ...props }) => <TableHead {...props} />,
+                th: ({ node, ...props }) => <TableHead className="font-semibold bg-muted/50" {...props} />,
                 td: ({ node, ...props }) => <TableCell {...props} />,
                 
                 // Code block with syntax highlighting
@@ -101,25 +101,53 @@ const TutorContent = ({ topicId, topicTitle }: TutorContentProps) => {
                       style={vscDarkPlus} 
                       language={match[1]} 
                       PreTag="div"
-                      className="rounded-md border"
+                      className="rounded-md border my-6 text-[14px] leading-relaxed"
+                      showLineNumbers={true}
                       {...props}
                     >
                       {String(children).replace(/\n$/, "")}
                     </SyntaxHighlighter>
                   ) : (
-                    <code className={cn("bg-muted px-1 py-0.5 rounded text-sm", className)} {...props}>
+                    <code className={cn("bg-muted px-1.5 py-1 rounded-md text-sm font-mono", className)} {...props}>
                       {children}
                     </code>
                   );
-                }
+                },
+                
+                // Enhanced headings
+                h1: ({ node, ...props }) => (
+                  <h1 className="text-2xl font-bold mt-8 mb-4 text-primary-foreground/90" {...props} />
+                ),
+                h2: ({ node, ...props }) => (
+                  <h2 className="text-xl font-bold mt-6 mb-3 text-primary-foreground/90" {...props} />
+                ),
+                h3: ({ node, ...props }) => (
+                  <h3 className="text-lg font-semibold mt-5 mb-2.5 text-primary-foreground/90" {...props} />
+                ),
+                
+                // Enhanced paragraphs and lists
+                p: ({ node, ...props }) => (
+                  <p className="my-4 leading-relaxed" {...props} />
+                ),
+                ul: ({ node, ...props }) => (
+                  <ul className="my-4 ml-6 space-y-2 list-disc" {...props} />
+                ),
+                ol: ({ node, ...props }) => (
+                  <ol className="my-4 ml-6 space-y-2 list-decimal" {...props} />
+                ),
+                li: ({ node, ...props }) => (
+                  <li className="leading-relaxed" {...props} />
+                ),
               }}
             >
               {content}
             </ReactMarkdown>
           </div>
         ) : (
-          <div className="text-center text-muted-foreground py-12">
-            Select a topic from the sidebar to view the tutorial content
+          <div className="text-center text-muted-foreground p-12 flex flex-col items-center justify-center h-64">
+            <BookOpen className="w-10 h-10 mb-4 text-muted-foreground/60" />
+            <p className="text-lg font-medium mb-2">No topic selected</p>
+            <p>Select a topic from the sidebar to view the tutorial content</p>
           </div>
         )}
       </CardContent>

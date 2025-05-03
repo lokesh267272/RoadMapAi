@@ -32,6 +32,7 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [typingIndicator, setTypingIndicator] = useState(false);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -71,6 +72,7 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
     setMessages(prev => [...prev, userMessage]);
     setNewMessage("");
     setIsLoading(true);
+    setTypingIndicator(true);
     
     try {
       const { data, error } = await supabase.functions.invoke("generate-tutor-response", {
@@ -84,6 +86,10 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
 
       if (error) throw error;
       
+      // Short delay to make the response feel more natural
+      await new Promise(resolve => setTimeout(resolve, 800));
+      setTypingIndicator(false);
+      
       const aiResponse = {
         id: `ai-${Date.now()}`,
         role: "assistant" as const,
@@ -94,20 +100,35 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
       setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
       console.error("Error getting AI tutor response:", error);
+      setTypingIndicator(false);
       toast.error("Failed to get a response. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
+  const TypingIndicator = () => (
+    <div className="flex max-w-[80%] rounded-lg p-3 bg-muted">
+      <div className="flex items-center gap-2 mb-1">
+        <Bot className="h-4 w-4" />
+        <span className="text-xs font-medium">AI Tutor</span>
+      </div>
+      <div className="flex items-center ml-2">
+        <span className="typing-dot"></span>
+        <span className="typing-dot"></span>
+        <span className="typing-dot"></span>
+      </div>
+    </div>
+  );
+
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="p-4 pb-2">
-        <div className="flex items-center mb-1">
-          <MessageSquare className="w-5 h-5 mr-2 text-primary" />
-          <CardTitle className="text-lg">AI Tutor Chat</CardTitle>
+    <Card className="h-full flex flex-col shadow-md">
+      <CardHeader className="p-5 pb-3">
+        <div className="flex items-center">
+          <MessageSquare className="w-5 h-5 mr-2.5 text-primary" />
+          <CardTitle className="text-xl font-semibold tracking-tight">AI Tutor Chat</CardTitle>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground mt-1">
           Ask questions about {topicTitle || "your selected topic"}
         </p>
       </CardHeader>
@@ -115,7 +136,7 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
       
       <CardContent className="p-0 flex-1 overflow-hidden">
         <ScrollArea className="h-full">
-          <div className="p-4 space-y-4">
+          <div className="p-5 space-y-5">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -124,13 +145,14 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
                 }`}
               >
                 <div
-                  className={`max-w-[80%] rounded-lg p-3 ${
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
-                  }`}
+                  className={cn(
+                    "max-w-[80%] rounded-2xl p-4 shadow-sm",
+                    message.role === "user" 
+                      ? "bg-primary text-primary-foreground rounded-br-sm" 
+                      : "bg-muted rounded-bl-sm"
+                  )}
                 >
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1.5">
                     {message.role === "user" ? (
                       <User className="h-4 w-4" />
                     ) : (
@@ -151,17 +173,28 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
                               style={vscDarkPlus} 
                               language={match[1]} 
                               PreTag="div"
-                              className="rounded-md border text-xs"
+                              className="rounded-md border text-xs my-3"
                               {...props}
                             >
                               {String(children).replace(/\n$/, "")}
                             </SyntaxHighlighter>
                           ) : (
-                            <code className="bg-muted px-1 py-0.5 rounded text-sm" {...props}>
+                            <code className={cn("bg-muted-foreground/10 px-1.5 py-0.5 rounded-md text-sm font-mono", className)} {...props}>
                               {children}
                             </code>
                           );
-                        }
+                        },
+                        
+                        // Enhanced paragraphs and lists
+                        p: ({ node, ...props }) => (
+                          <p className="my-3 leading-relaxed" {...props} />
+                        ),
+                        ul: ({ node, ...props }) => (
+                          <ul className="my-3 ml-5 space-y-2 list-disc" {...props} />
+                        ),
+                        ol: ({ node, ...props }) => (
+                          <ol className="my-3 ml-5 space-y-2 list-decimal" {...props} />
+                        ),
                       }}
                     >
                       {message.content}
@@ -170,21 +203,27 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
                 </div>
               </div>
             ))}
+            {typingIndicator && <TypingIndicator />}
             <div ref={messagesEndRef} />
           </div>
         </ScrollArea>
       </CardContent>
       
-      <CardFooter className="p-4 pt-2">
-        <form onSubmit={handleSendMessage} className="w-full flex gap-2">
+      <CardFooter className="p-4 pt-3">
+        <form onSubmit={handleSendMessage} className="w-full flex gap-3">
           <Input
-            placeholder={isLoading ? "AI is typing..." : "Ask a question..."}
+            placeholder={isLoading ? "AI is thinking..." : "Ask a question..."}
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             disabled={isLoading || !topicId}
-            className="flex-1"
+            className="flex-1 rounded-full"
           />
-          <Button type="submit" disabled={isLoading || !newMessage.trim() || !topicId}>
+          <Button 
+            type="submit" 
+            disabled={isLoading || !newMessage.trim() || !topicId}
+            size="icon"
+            className="rounded-full h-10 w-10 flex-shrink-0"
+          >
             <Send className="h-4 w-4" />
             <span className="sr-only">Send</span>
           </Button>
