@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
-import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 import {
   Table,
@@ -81,8 +80,6 @@ const TutorContent = ({ topicId, topicTitle }: TutorContentProps) => {
         ) : topicId ? (
           <div className="prose prose-sm max-w-none dark:prose-invert">
             <ReactMarkdown
-              // Use type assertion to fix the remarkGfm type error
-              remarkPlugins={[remarkGfm as any]}
               components={{
                 // Custom table rendering
                 table: ({ node, ...props }) => (
