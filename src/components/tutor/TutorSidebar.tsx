@@ -13,6 +13,7 @@ import {
   AccordionItem,
   AccordionTrigger
 } from "@/components/ui/accordion";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface TutorSidebarProps {
   roadmapId: string;
@@ -23,6 +24,7 @@ interface TutorSidebarProps {
 
 const TutorSidebar = ({ roadmapId, roadmapTitle, nodes, currentTopicId }: TutorSidebarProps) => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const handleTopicClick = (nodeId: string, label: string) => {
     navigate(`/ai-tutor/${roadmapId}?topicId=${nodeId}&title=${encodeURIComponent(label)}`);
@@ -38,7 +40,45 @@ const TutorSidebar = ({ roadmapId, roadmapTitle, nodes, currentTopicId }: TutorS
       return dayA - dayB;
     });
 
-  // Group topics by week
+  // For mobile view, we'll just show a flat list without week grouping
+  if (isMobile) {
+    return (
+      <Card className="h-full shadow-md">
+        <div className="flex items-center gap-2.5 px-5 py-4 border-b">
+          <GraduationCap className="w-5 h-5 text-primary" />
+          <h3 className="text-xl font-semibold tracking-tight truncate" title={roadmapTitle}>
+            {roadmapTitle}
+          </h3>
+        </div>
+        
+        <ScrollArea className="h-[calc(100vh-10rem)]">
+          <div className="p-3 space-y-1">
+            {topicNodes.map((node) => (
+              <Button
+                key={node.id}
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start text-left pl-3 transition-all duration-200",
+                  currentTopicId === node.id 
+                    ? "bg-primary/10 font-medium text-primary" 
+                    : "hover:bg-muted"
+                )}
+                onClick={() => handleTopicClick(node.id, node.data?.label || "")}
+              >
+                <ChevronRight className={cn(
+                  "w-4 h-4 mr-2 shrink-0 transition-transform",
+                  currentTopicId === node.id && "text-primary"
+                )} />
+                <span className="truncate">{node.data?.label || "Unnamed Topic"}</span>
+              </Button>
+            ))}
+          </div>
+        </ScrollArea>
+      </Card>
+    );
+  }
+  
+  // Group topics by week for desktop view
   const topicsByWeek: Record<number, RoadmapNode[]> = {};
   topicNodes.forEach(node => {
     const day = Number((node.data as any)?.day || 0);

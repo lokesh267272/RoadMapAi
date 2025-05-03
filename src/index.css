@@ -34,6 +34,14 @@
     --ring: 221 83% 53%;
 
     --radius: 0.75rem;
+    
+    /* Adding sidebar colors */
+    --sidebar: 210 20% 98%;
+    --sidebar-foreground: 220 20% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-accent: 215 25% 96%;
+    --sidebar-accent-foreground: 220 20% 10%;
+    --sidebar-ring: 221 83% 53%;
   }
 
   .dark {
@@ -64,6 +72,14 @@
     --border: 220 30% 20%;
     --input: 220 30% 20%;
     --ring: 221 83% 53%;
+    
+    /* Adding sidebar colors for dark mode */
+    --sidebar: 220 30% 13%;
+    --sidebar-foreground: 220 20% 98%;
+    --sidebar-border: 220 30% 20%;
+    --sidebar-accent: 220 30% 16%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-ring: 221 83% 53%;
   }
 }
 
@@ -130,6 +146,15 @@
   .backface-hidden {
     backface-visibility: hidden;
   }
+  
+  /* Mobile-specific utilities */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  
+  .full-height-mobile {
+    height: calc(100vh - 4rem - env(safe-area-inset-bottom, 0));
+  }
 }
 
 /* Typing indicator animation */
@@ -172,6 +197,33 @@
   @apply font-mono text-sm;
 }
 
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .prose h1 {
+    @apply text-xl mt-5 mb-3;
+  }
+  
+  .prose h2 {
+    @apply text-lg mt-4 mb-2;
+  }
+  
+  .prose h3 {
+    @apply text-base mt-3 mb-2;
+  }
+  
+  .prose p, .prose li {
+    @apply text-sm;
+  }
+  
+  .prose pre {
+    @apply my-4 text-xs;
+  }
+  
+  .prose code {
+    @apply text-xs;
+  }
+}
+
 /* Animation keyframes */
 @keyframes fadeIn {
   from { opacity: 0; }
@@ -210,4 +262,24 @@
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
+}
+
+/* Mobile drawer styling */
+.vaul-drawer {
+  @apply overflow-hidden rounded-t-[10px] shadow-lg;
+}
+
+/* Fix for drawer content */
+.vaul-drawer-content {
+  @apply max-w-full !important;
+}
+
+/* Fix button position when drawer is up */
+.vaul-drawer[data-open="true"] + .fixed {
+  @apply opacity-0 pointer-events-none;
+}
+
+/* Bottom safe area for drawer */
+.vaul-drawer-content {
+  @apply pb-[env(safe-area-inset-bottom,0)];
 }

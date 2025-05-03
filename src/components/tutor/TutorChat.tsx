@@ -13,6 +13,7 @@ import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Message {
   id: string;
@@ -28,6 +29,7 @@ interface TutorChatProps {
 
 const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -108,7 +110,7 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
   };
 
   const TypingIndicator = () => (
-    <div className="flex max-w-[80%] rounded-lg p-3 bg-muted">
+    <div className="flex max-w-[80%] rounded-2xl p-3 bg-muted">
       <div className="flex items-center gap-2 mb-1">
         <Bot className="h-4 w-4" />
         <span className="text-xs font-medium">AI Tutor</span>
@@ -122,8 +124,11 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
   );
 
   return (
-    <Card className="h-full flex flex-col shadow-md">
-      <CardHeader className="p-5 pb-3">
+    <Card className={cn(
+      "h-full flex flex-col shadow-md",
+      isMobile && "rounded-t-xl rounded-b-none border-b-0"
+    )}>
+      <CardHeader className="p-4 pb-3 sm:p-5 sm:pb-3">
         <div className="flex items-center">
           <MessageSquare className="w-5 h-5 mr-2.5 text-primary" />
           <CardTitle className="text-xl font-semibold tracking-tight">AI Tutor Chat</CardTitle>
@@ -136,7 +141,7 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
       
       <CardContent className="p-0 flex-1 overflow-hidden">
         <ScrollArea className="h-full">
-          <div className="p-5 space-y-5">
+          <div className="p-3 sm:p-5 space-y-4">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -146,17 +151,17 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
               >
                 <div
                   className={cn(
-                    "max-w-[80%] rounded-2xl p-4 shadow-sm",
+                    "max-w-[85%] sm:max-w-[80%] rounded-2xl p-3 sm:p-4 shadow-sm",
                     message.role === "user" 
                       ? "bg-primary text-primary-foreground rounded-br-sm" 
                       : "bg-muted rounded-bl-sm"
                   )}
                 >
-                  <div className="flex items-center gap-2 mb-1.5">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-1.5">
                     {message.role === "user" ? (
-                      <User className="h-4 w-4" />
+                      <User className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                     ) : (
-                      <Bot className="h-4 w-4" />
+                      <Bot className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                     )}
                     <span className="text-xs font-medium">
                       {message.role === "user" ? "You" : "AI Tutor"}
@@ -173,7 +178,7 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
                               style={vscDarkPlus} 
                               language={match[1]} 
                               PreTag="div"
-                              className="rounded-md border text-xs my-3"
+                              className="rounded-md border text-xs my-2 sm:my-3"
                               {...props}
                             >
                               {String(children).replace(/\n$/, "")}
@@ -187,13 +192,13 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
                         
                         // Enhanced paragraphs and lists
                         p: ({ node, ...props }) => (
-                          <p className="my-3 leading-relaxed" {...props} />
+                          <p className="my-2 sm:my-3 leading-relaxed text-sm sm:text-base" {...props} />
                         ),
                         ul: ({ node, ...props }) => (
-                          <ul className="my-3 ml-5 space-y-2 list-disc" {...props} />
+                          <ul className="my-2 sm:my-3 ml-4 sm:ml-5 space-y-1.5 sm:space-y-2 list-disc" {...props} />
                         ),
                         ol: ({ node, ...props }) => (
-                          <ol className="my-3 ml-5 space-y-2 list-decimal" {...props} />
+                          <ol className="my-2 sm:my-3 ml-4 sm:ml-5 space-y-1.5 sm:space-y-2 list-decimal" {...props} />
                         ),
                       }}
                     >
@@ -209,20 +214,20 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
         </ScrollArea>
       </CardContent>
       
-      <CardFooter className="p-4 pt-3">
-        <form onSubmit={handleSendMessage} className="w-full flex gap-3">
+      <CardFooter className="p-3 sm:p-4 pt-2 sm:pt-3">
+        <form onSubmit={handleSendMessage} className="w-full flex gap-2 sm:gap-3">
           <Input
             placeholder={isLoading ? "AI is thinking..." : "Ask a question..."}
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             disabled={isLoading || !topicId}
-            className="flex-1 rounded-full"
+            className="flex-1 rounded-full text-sm"
           />
           <Button 
             type="submit" 
             disabled={isLoading || !newMessage.trim() || !topicId}
             size="icon"
-            className="rounded-full h-10 w-10 flex-shrink-0"
+            className="rounded-full h-9 sm:h-10 w-9 sm:w-10 flex-shrink-0"
           >
             <Send className="h-4 w-4" />
             <span className="sr-only">Send</span>
