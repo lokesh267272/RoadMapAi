@@ -42,9 +42,9 @@ const TutorSidebar = ({ roadmapId, roadmapTitle, nodes, currentTopicId }: TutorS
             {nodes
               .filter(node => node.type !== "start" && node.type !== "end")
               .sort((a, b) => {
-                // Sort by day number if available
-                const dayA = Number(a.data?.day) || 0;
-                const dayB = Number(b.data?.day) || 0;
+                // Sort by day number if available, safely access the property using optional chaining
+                const dayA = a.data?.day ? Number(a.data.day) : 0;
+                const dayB = b.data?.day ? Number(b.data.day) : 0;
                 return dayA - dayB;
               })
               .map((node) => (
