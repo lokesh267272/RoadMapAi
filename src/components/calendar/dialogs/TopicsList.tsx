@@ -1,7 +1,7 @@
 
 import React from "react";
-import { CalendarEvent } from "../types";
 import TopicCard from "./TopicCard";
+import { CalendarEvent } from "../types";
 
 interface TopicsListProps {
   events: CalendarEvent[];
@@ -14,6 +14,7 @@ interface TopicsListProps {
   onQuizClick: (topic: CalendarEvent) => void;
   onResourcesClick: (topic: CalendarEvent) => void;
   onFlashcardsClick: (topic: CalendarEvent) => void;
+  onTutorClick: (topic: CalendarEvent) => void;
 }
 
 const TopicsList: React.FC<TopicsListProps> = ({
@@ -26,18 +27,19 @@ const TopicsList: React.FC<TopicsListProps> = ({
   onRescheduleClick,
   onQuizClick,
   onResourcesClick,
-  onFlashcardsClick
+  onFlashcardsClick,
+  onTutorClick
 }) => {
   if (events.length === 0) {
     return (
-      <div className="text-center py-6 text-muted-foreground">
-        No learning topics scheduled for this date
+      <div className="text-center text-muted-foreground py-12">
+        No topics scheduled for this date. Click on the plus button to add a topic.
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 py-4">
+    <div className="space-y-3">
       {events.map((event) => (
         <TopicCard
           key={event.id}
@@ -51,6 +53,7 @@ const TopicsList: React.FC<TopicsListProps> = ({
           onQuiz={() => onQuizClick(event)}
           onResources={() => onResourcesClick(event)}
           onFlashcards={() => onFlashcardsClick(event)}
+          onTutor={() => onTutorClick(event)}
         />
       ))}
     </div>

@@ -113,6 +113,10 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
     await fetchSavedFlashcards(topic.id);
   };
 
+  const handleTutorClick = (topic: CalendarEvent) => {
+    navigate(`/ai-tutor/${topic.roadmap_id}?topicId=${topic.id}&title=${encodeURIComponent(topic.title)}`);
+  };
+
   const fetchSavedFlashcards = async (topicId: string) => {
     if (!user) return;
     
@@ -257,6 +261,7 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
               onQuizClick={handleQuizClick}
               onResourcesClick={handleResourcesClick}
               onFlashcardsClick={handleFlashcardsClick}
+              onTutorClick={handleTutorClick}
             />
           )}
         </DialogContent>

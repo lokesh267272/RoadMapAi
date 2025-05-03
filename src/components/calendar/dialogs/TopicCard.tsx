@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Edit, ArrowRight, Book, ChevronUp, ChevronDown, FileText, Brain } from "lucide-react";
+import { Edit, ArrowRight, Book, ChevronUp, ChevronDown, FileText, Brain, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -20,6 +20,7 @@ interface TopicCardProps {
   onQuiz: () => void;
   onResources: () => void;
   onFlashcards: () => void;
+  onTutor: () => void;
 }
 
 const TopicCard: React.FC<TopicCardProps> = ({
@@ -32,7 +33,8 @@ const TopicCard: React.FC<TopicCardProps> = ({
   onReschedule,
   onQuiz,
   onResources,
-  onFlashcards
+  onFlashcards,
+  onTutor
 }) => {
   const hasResources = event.resources && event.resources.length > 0;
   
@@ -96,7 +98,7 @@ const TopicCard: React.FC<TopicCardProps> = ({
       </div>
       
       <div className="bg-background/10 border-t p-3">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -137,10 +139,19 @@ const TopicCard: React.FC<TopicCardProps> = ({
             variant="outline"
             size="sm"
             onClick={onFlashcards}
-            className="w-full text-xs col-span-1 sm:col-span-1"
+            className="w-full text-xs"
           >
             <Brain className="mr-1 h-3 w-3" />
             Flashcards
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onTutor}
+            className="w-full text-xs"
+          >
+            <BookOpen className="mr-1 h-3 w-3" />
+            AI Tutor
           </Button>
         </div>
       </div>
