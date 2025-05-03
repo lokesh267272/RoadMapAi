@@ -33,9 +33,9 @@ const TutorSidebar = ({ roadmapId, roadmapTitle, nodes, currentTopicId }: TutorS
   const topicNodes = nodes
     .filter(node => node.type !== "start" && node.type !== "end")
     .sort((a, b) => {
-      // TypeScript-safe access to properties that might not be in the type definition
-      const dayA = (a.data as any)?.day ? Number((a.data as any).day) : 0;
-      const dayB = (b.data as any)?.day ? Number((b.data as any).day) : 0;
+      // Access day property safely with type assertion
+      const dayA = ((a.data as any)?.day !== undefined) ? Number((a.data as any).day) : 0;
+      const dayB = ((b.data as any)?.day !== undefined) ? Number((b.data as any).day) : 0;
       return dayA - dayB;
     });
 
