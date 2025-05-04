@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, BookOpen } from "lucide-react";
+import { Loader2, BookOpen, RefreshCw } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -10,10 +10,19 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+
+// Cache expiration time (24 hours in milliseconds)
+const CACHE_EXPIRATION = 24 * 60 * 60 * 1000;
 
 interface TutorContentProps {
   topicId: string;
   topicTitle: string;
+}
+
+interface CachedContent {
+  content: string;
+  timestamp: number;
 }
 
 const TutorContent = ({
@@ -22,18 +31,76 @@ const TutorContent = ({
 }: TutorContentProps) => {
   const [content, setContent] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isFromCache, setIsFromCache] = useState(false);
 
-  // Generate content when topic changes
+  // Try to load from cache or generate content when topic changes
   useEffect(() => {
     if (topicId && topicTitle) {
-      generateContent();
+      loadContentForTopic();
     }
   }, [topicId, topicTitle]);
+
+  const loadContentForTopic = async () => {
+    if (!topicId || !topicTitle) return;
+    setIsLoading(true);
+    setContent(""); // Clear previous content
+    setIsFromCache(false);
+    
+    // Check if we have cached content
+    const cachedData = getCachedContent(topicId);
+    
+    if (cachedData) {
+      // Use cached content
+      setContent(cachedData.content);
+      setIsFromCache(true);
+      setIsLoading(false);
+    } else {
+      // No cache available, generate new content
+      await generateContent();
+    }
+  };
+
+  const getCachedContent = (topicId: string): CachedContent | null => {
+    try {
+      const cachedItem = localStorage.getItem(`ai_tutor_${topicId}`);
+      
+      if (!cachedItem) return null;
+      
+      const parsedItem: CachedContent = JSON.parse(cachedItem);
+      const now = Date.now();
+      
+      // Check if cache is expired
+      if (now - parsedItem.timestamp > CACHE_EXPIRATION) {
+        // Cache expired, remove it
+        localStorage.removeItem(`ai_tutor_${topicId}`);
+        return null;
+      }
+      
+      return parsedItem;
+    } catch (error) {
+      console.error("Error reading from cache:", error);
+      return null;
+    }
+  };
+
+  const cacheContent = (topicId: string, content: string) => {
+    try {
+      const cacheItem: CachedContent = {
+        content,
+        timestamp: Date.now()
+      };
+      
+      localStorage.setItem(`ai_tutor_${topicId}`, JSON.stringify(cacheItem));
+    } catch (error) {
+      console.error("Error saving to cache:", error);
+    }
+  };
 
   const generateContent = async () => {
     if (!topicId || !topicTitle) return;
     setIsLoading(true);
     setContent(""); // Clear previous content
+    setIsFromCache(false);
 
     try {
       const {
@@ -45,8 +112,13 @@ const TutorContent = ({
           topicTitle
         }
       });
+      
       if (error) throw error;
+      
       setContent(data.content);
+      
+      // Cache the new content
+      cacheContent(topicId, data.content);
     } catch (error) {
       console.error("Error generating tutor content:", error);
       toast.error("Failed to generate tutorial content");
@@ -56,14 +128,33 @@ const TutorContent = ({
     }
   };
 
+  const handleRefresh = () => {
+    generateContent();
+  };
+
   return <Card className="h-full flex flex-col shadow-md">
       <CardHeader className="p-4 pb-3 sm:p-5 sm:pb-3">
-        <div className="flex items-center">
-          <BookOpen className="w-5 h-5 mr-2.5 text-primary" />
-          <CardTitle className="text-xl font-semibold tracking-tight">Tutorial</CardTitle>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <BookOpen className="w-5 h-5 mr-2.5 text-primary" />
+            <CardTitle className="text-xl font-semibold tracking-tight">Tutorial</CardTitle>
+          </div>
+          {isFromCache && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleRefresh} 
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              title="Refresh content"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span className="sr-only">Refresh content</span>
+            </Button>
+          )}
         </div>
         <p className="text-sm text-muted-foreground mt-1">
           {topicTitle || "Select a topic to begin learning"}
+          {isFromCache && <span className="text-xs ml-2 text-muted-foreground">(cached)</span>}
         </p>
       </CardHeader>
       <Separator />
