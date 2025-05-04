@@ -1,10 +1,11 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Send, MessageSquare, User, Bot, RefreshCw } from "lucide-react";
+import { Send, MessageSquare, User, Bot } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +14,6 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface Message {
   id: string;
@@ -27,13 +27,6 @@ interface TutorChatProps {
   topicTitle: string;
 }
 
-interface CachedMessages {
-  messages: Message[];
-}
-
-// Cache expiration time (24 hours in milliseconds)
-const CACHE_EXPIRATION = 24 * 60 * 60 * 1000;
-
 const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
@@ -42,32 +35,15 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [typingIndicator, setTypingIndicator] = useState(false);
-  const [isFromCache, setIsFromCache] = useState(false);
 
   // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  // Load messages from cache or initialize with welcome message when topic changes
+  // Add welcome message when topic changes
   useEffect(() => {
     if (topicId && topicTitle) {
-      loadMessagesForTopic();
-    }
-  }, [topicId, topicTitle]);
-
-  const loadMessagesForTopic = () => {
-    if (!topicId || !topicTitle) return;
-    
-    // Try to get cached messages for this topic
-    const cachedData = getCachedMessages(topicId);
-    
-    if (cachedData && cachedData.messages.length > 0) {
-      // Use cached messages
-      setMessages(cachedData.messages);
-      setIsFromCache(true);
-    } else {
-      // No cache available, initialize with welcome message
       const welcomeMessage = {
         id: `welcome-${topicId}`,
         role: "assistant" as const,
@@ -76,47 +52,8 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
       };
       
       setMessages([welcomeMessage]);
-      setIsFromCache(false);
-      
-      // Cache this initial message
-      cacheMessages(topicId, [welcomeMessage]);
     }
-  };
-
-  const getCachedMessages = (topicId: string): CachedMessages | null => {
-    try {
-      const cachedItem = localStorage.getItem(`ai_tutor_chat_${topicId}`);
-      
-      if (!cachedItem) return null;
-      
-      const parsedItem: CachedMessages = JSON.parse(cachedItem);
-      
-      // Convert string timestamps back to Date objects
-      const messagesWithDates = parsedItem.messages.map(msg => ({
-        ...msg,
-        timestamp: new Date(msg.timestamp)
-      }));
-      
-      return {
-        messages: messagesWithDates
-      };
-    } catch (error) {
-      console.error("Error reading from cache:", error);
-      return null;
-    }
-  };
-
-  const cacheMessages = (topicId: string, messages: Message[]) => {
-    try {
-      const cacheItem: CachedMessages = {
-        messages
-      };
-      
-      localStorage.setItem(`ai_tutor_chat_${topicId}`, JSON.stringify(cacheItem));
-    } catch (error) {
-      console.error("Error saving to cache:", error);
-    }
-  };
+  }, [topicId, topicTitle]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -134,8 +71,7 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
       timestamp: new Date()
     };
     
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
+    setMessages(prev => [...prev, userMessage]);
     setNewMessage("");
     setIsLoading(true);
     setTypingIndicator(true);
@@ -163,11 +99,7 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
         timestamp: new Date()
       };
       
-      const finalMessages = [...updatedMessages, aiResponse];
-      setMessages(finalMessages);
-      
-      // Update the cache with the new messages
-      cacheMessages(topicId, finalMessages);
+      setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
       console.error("Error getting AI tutor response:", error);
       setTypingIndicator(false);
@@ -175,24 +107,6 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleRefreshChat = () => {
-    // Clear cache for this topic and reset to initial welcome message
-    localStorage.removeItem(`ai_tutor_chat_${topicId}`);
-    const welcomeMessage = {
-      id: `welcome-${topicId}`,
-      role: "assistant" as const,
-      content: `Welcome to the AI Tutor for "${topicTitle}". What questions do you have about this topic?`,
-      timestamp: new Date()
-    };
-    
-    setMessages([welcomeMessage]);
-    setIsFromCache(false);
-    
-    // Cache this initial message
-    cacheMessages(topicId, [welcomeMessage]);
-    toast.success("Chat history reset");
   };
 
   const TypingIndicator = () => (
@@ -215,27 +129,12 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
       isMobile && "rounded-t-xl rounded-b-none border-b-0"
     )}>
       <CardHeader className="p-4 pb-3 sm:p-5 sm:pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <MessageSquare className="w-5 h-5 mr-2.5 text-primary" />
-            <CardTitle className="text-xl font-semibold tracking-tight">AI Tutor Chat</CardTitle>
-          </div>
-          {messages.length > 1 && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={handleRefreshChat} 
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-              title="Reset chat"
-            >
-              <RefreshCw className="h-4 w-4" />
-              <span className="sr-only">Reset chat</span>
-            </Button>
-          )}
+        <div className="flex items-center">
+          <MessageSquare className="w-5 h-5 mr-2.5 text-primary" />
+          <CardTitle className="text-xl font-semibold tracking-tight">AI Tutor Chat</CardTitle>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
           Ask questions about {topicTitle || "your selected topic"}
-          {isFromCache && messages.length > 1 && <span className="text-xs ml-2 text-muted-foreground">(cached)</span>}
         </p>
       </CardHeader>
       <Separator />
@@ -271,28 +170,6 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
                   <div className="prose prose-sm max-w-none dark:prose-invert">
                     <ReactMarkdown
                       components={{
-                        // Enhanced table rendering
-                        table: ({ node, ...props }) => (
-                          <div className="w-full overflow-x-auto my-2 sm:my-3">
-                            <Table {...props} className="border border-border rounded-md w-full text-foreground text-xs sm:text-sm" />
-                          </div>
-                        ),
-                        thead: ({ node, ...props }) => <TableHeader {...props} />,
-                        tbody: ({ node, ...props }) => <TableBody {...props} />,
-                        tr: ({ node, ...props }) => <TableRow {...props} className="hover:bg-muted/10" />,
-                        th: ({ node, ...props }) => (
-                          <TableHead 
-                            className="font-semibold p-1.5 sm:p-2 border-b border-r border-border last:border-r-0 text-foreground bg-muted/30" 
-                            {...props} 
-                          />
-                        ),
-                        td: ({ node, ...props }) => (
-                          <TableCell 
-                            className="p-1.5 sm:p-2 border-r border-border last:border-r-0 align-middle" 
-                            {...props} 
-                          />
-                        ),
-                        
                         // Code block with syntax highlighting
                         code: ({ node, className, children, ...props }) => {
                           const match = /language-(\w+)/.exec(className || "");
@@ -331,19 +208,7 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
                 </div>
               </div>
             ))}
-            {typingIndicator && (
-              <div className="flex max-w-[80%] rounded-2xl p-3 bg-muted">
-                <div className="flex items-center gap-2 mb-1">
-                  <Bot className="h-4 w-4" />
-                  <span className="text-xs font-medium">AI Tutor</span>
-                </div>
-                <div className="flex items-center ml-2">
-                  <span className="typing-dot"></span>
-                  <span className="typing-dot"></span>
-                  <span className="typing-dot"></span>
-                </div>
-              </div>
-            )}
+            {typingIndicator && <TypingIndicator />}
             <div ref={messagesEndRef} />
           </div>
         </ScrollArea>
