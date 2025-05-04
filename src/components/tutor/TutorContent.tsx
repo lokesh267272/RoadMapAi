@@ -112,7 +112,7 @@ const TutorContent = ({
           h1: ({
             node,
             ...props
-          }) => <h1 className="text-xl sm:text-2xl font-bold mt-6 sm:mt-8 mb-3 sm:mb-4 text-primary-foreground/90" {...props} />,
+          }) => <h1 className="text-xl sm:text-2xl font-bold mt-6 sm:mt-8 mb-3 sm:mb-4 text-black" />,
           h2: ({
             node,
             ...props
@@ -120,7 +120,7 @@ const TutorContent = ({
           h3: ({
             node,
             ...props
-          }) => <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-5 mb-2 sm:mb-2.5 text-primary-foreground/90" {...props} />,
+          }) => <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-5 mb-2 sm:mb-2.5 text-black" />,
           // Enhanced paragraphs and lists
           p: ({
             node,
