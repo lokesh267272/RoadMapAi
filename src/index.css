@@ -102,6 +102,29 @@
   }
 }
 
+/* Particle animation for roadmap generation */
+@keyframes particle-float {
+  0% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-100px) translateX(var(--x-offset, 0)) rotate(var(--rotation, 0deg));
+    opacity: 0;
+  }
+}
+
+.particle-animation {
+  animation-name: particle-float;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  --x-offset: 0px;
+  --rotation: 0deg;
+}
+
 /* Add more custom utilities */
 @layer utilities {
   .animate-fadeInUp {

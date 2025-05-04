@@ -16,14 +16,15 @@ const GenerationAnimation = () => {
           {[...Array(8)].map((_, i) => (
             <div 
               key={i}
-              className="absolute rounded-full bg-primary"
+              className="absolute rounded-full bg-primary particle-animation"
               style={{
                 width: `${Math.random() * 6 + 2}px`,
                 height: `${Math.random() * 6 + 2}px`,
                 left: `${Math.random() * 100 - 50}px`,
                 top: `${Math.random() * 100 - 50}px`,
                 opacity: Math.random() * 0.7 + 0.3,
-                animation: `float ${Math.random() * 3 + 2}s infinite ease-in-out ${Math.random()}s`
+                animationDuration: `${Math.random() * 3 + 2}s`,
+                animationDelay: `${Math.random()}s`
               }}
             />
           ))}
@@ -42,22 +43,6 @@ const GenerationAnimation = () => {
       <p className="mt-2 text-muted-foreground text-center max-w-xs">
         Our AI is crafting a personalized learning path just for you. This may take a moment...
       </p>
-      
-      <style jsx>{`
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0) translateX(0) rotate(0deg);
-            opacity: 0;
-          }
-          50% {
-            opacity: 0.8;
-          }
-          100% {
-            transform: translateY(-100px) translateX(${Math.random() * 50 - 25}px) rotate(${Math.random() * 360}deg);
-            opacity: 0;
-          }
-        }
-      `}</style>
     </div>
   );
 };
