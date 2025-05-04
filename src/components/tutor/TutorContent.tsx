@@ -1,30 +1,126 @@
-
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, RefreshCw } from "lucide-react";
+import { Loader2, BookOpen, RefreshCw } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { cn } from "@/lib/utils";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import TutorMarkdown from "./TutorMarkdown";
-import TutorEmptyState from "./TutorEmptyState";
-import TutorLoading from "./TutorLoading";
-import { useTutorContent } from "./hooks/useTutorContent";
+
+// Cache expiration time (24 hours in milliseconds)
+const CACHE_EXPIRATION = 24 * 60 * 60 * 1000;
 
 interface TutorContentProps {
   topicId: string;
   topicTitle: string;
 }
 
+interface CachedContent {
+  content: string;
+}
+
 const TutorContent = ({
   topicId,
   topicTitle
 }: TutorContentProps) => {
-  const { content, isLoading, isFromCache, generateContent } = useTutorContent(topicId, topicTitle);
+  const [content, setContent] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFromCache, setIsFromCache] = useState(false);
+
+  // Try to load from cache or generate content when topic changes
+  useEffect(() => {
+    if (topicId && topicTitle) {
+      loadContentForTopic();
+    }
+  }, [topicId, topicTitle]);
+
+  const loadContentForTopic = async () => {
+    if (!topicId || !topicTitle) return;
+    setIsLoading(true);
+    setContent(""); // Clear previous content
+    setIsFromCache(false);
+    
+    // Check if we have cached content
+    const cachedData = getCachedContent(topicId);
+    
+    if (cachedData) {
+      // Use cached content
+      setContent(cachedData.content);
+      setIsFromCache(true);
+      setIsLoading(false);
+    } else {
+      // No cache available, generate new content
+      await generateContent();
+    }
+  };
+
+  const getCachedContent = (topicId: string): CachedContent | null => {
+    try {
+      const cachedItem = localStorage.getItem(`ai_tutor_${topicId}`);
+      
+      if (!cachedItem) return null;
+      
+      const parsedItem: CachedContent = JSON.parse(cachedItem);
+      return parsedItem;
+    } catch (error) {
+      console.error("Error reading from cache:", error);
+      return null;
+    }
+  };
+
+  const cacheContent = (topicId: string, content: string) => {
+    try {
+      const cacheItem: CachedContent = {
+        content
+      };
+      
+      localStorage.setItem(`ai_tutor_${topicId}`, JSON.stringify(cacheItem));
+    } catch (error) {
+      console.error("Error saving to cache:", error);
+    }
+  };
+
+  const generateContent = async () => {
+    if (!topicId || !topicTitle) return;
+    setIsLoading(true);
+    setContent(""); // Clear previous content
+    setIsFromCache(false);
+
+    try {
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke("generate-tutor-content", {
+        body: {
+          topicId,
+          topicTitle
+        }
+      });
+      
+      if (error) throw error;
+      
+      setContent(data.content);
+      
+      // Cache the new content
+      cacheContent(topicId, data.content);
+    } catch (error) {
+      console.error("Error generating tutor content:", error);
+      toast.error("Failed to generate tutorial content");
+      setContent("Failed to load content. Please try again later.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleRefresh = () => {
     generateContent();
   };
 
-  return (
-    <Card className="h-full flex flex-col shadow-md">
+  return <Card className="h-full flex flex-col shadow-md">
       <CardHeader className="p-4 pb-3 sm:p-5 sm:pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
@@ -51,18 +147,63 @@ const TutorContent = ({
       </CardHeader>
       <Separator />
       <CardContent className="p-0 flex-1 overflow-auto">
-        {isLoading ? (
-          <TutorLoading />
-        ) : topicId ? (
-          <div className="prose prose-sm max-w-none dark:prose-invert p-3 sm:p-6">
-            <TutorMarkdown content={content} />
-          </div>
-        ) : (
-          <TutorEmptyState />
-        )}
+        {isLoading ? <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div> : topicId ? <div className="prose prose-sm max-w-none dark:prose-invert p-3 sm:p-6">
+            <ReactMarkdown components={{
+          // Enhanced table rendering
+          table: ({ node, ...props }) => (
+            <div className="my-4 sm:my-6 w-full overflow-x-auto">
+              <Table {...props} className="border border-border rounded-md w-full text-foreground" />
+            </div>
+          ),
+          thead: ({ node, ...props }) => <TableHeader {...props} />,
+          tbody: ({ node, ...props }) => <TableBody {...props} />,
+          tr: ({ node, ...props }) => <TableRow {...props} className="hover:bg-muted/30" />,
+          th: ({ node, ...props }) => (
+            <TableHead 
+              className="font-semibold text-foreground bg-muted/50 p-2 sm:p-4 border-b border-r border-border last:border-r-0" 
+              {...props} 
+            />
+          ),
+          td: ({ node, ...props }) => (
+            <TableCell 
+              className="p-2 sm:p-4 border-r border-border last:border-r-0 align-middle" 
+              {...props} 
+            />
+          ),
+          // Code block with syntax highlighting
+          code: ({
+            node,
+            className,
+            children,
+            ...props
+          }) => {
+            const match = /language-(\w+)/.exec(className || "");
+            return match ? <SyntaxHighlighter style={vscDarkPlus} language={match[1]} PreTag="div" className="rounded-md border my-4 sm:my-6 text-sm sm:text-[14px] leading-relaxed" showLineNumbers={true} {...props}>
+                      {String(children).replace(/\n$/, "")}
+                    </SyntaxHighlighter> : <code className={cn("bg-muted px-1.5 py-1 rounded-md text-sm font-mono", className)} {...props}>
+                      {children}
+                    </code>;
+          },
+          // Enhanced headings
+          h1: ({ node, ...props }) => <h1 className="text-xl sm:text-2xl font-bold mt-6 sm:mt-8 mb-3 sm:mb-4 text-foreground" {...props} />,
+          h2: ({ node, ...props }) => <h2 className="text-lg sm:text-xl font-bold mt-5 sm:mt-6 mb-2 sm:mb-3 text-foreground" {...props} />,
+          h3: ({ node, ...props }) => <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-5 mb-2 sm:mb-2.5 text-foreground" {...props} />,
+          // Enhanced paragraphs and lists
+          p: ({ node, ...props }) => <p className="my-3 sm:my-4 leading-relaxed text-base text-foreground" {...props} />,
+          ul: ({ node, ...props }) => <ul className="my-3 sm:my-4 ml-4 sm:ml-6 space-y-1.5 sm:space-y-2 list-disc" {...props} />,
+          ol: ({ node, ...props }) => <ol className="my-3 sm:my-4 ml-4 sm:ml-6 space-y-1.5 sm:space-y-2 list-decimal" {...props} />,
+          li: ({ node, ...props }) => <li className="leading-relaxed text-foreground" {...props} />
+        }}>
+              {content}
+            </ReactMarkdown>
+          </div> : <div className="text-center text-muted-foreground p-6 sm:p-12 flex flex-col items-center justify-center h-64">
+            <BookOpen className="w-8 sm:w-10 h-8 sm:h-10 mb-3 sm:mb-4 text-muted-foreground/60" />
+            <p className="text-base sm:text-lg font-medium mb-2">No topic selected</p>
+            <p>Select a topic to view the tutorial content</p>
+          </div>}
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
-
 export default TutorContent;
