@@ -92,6 +92,7 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
   };
 
   const handleQuizClick = (topic: CalendarEvent) => {
+    onOpenChange(false); // Close the dialog
     navigate(`/quiz-generator?topic=${encodeURIComponent(topic.title)}&id=${topic.id}&roadmapId=${topic.roadmap_id}`);
   };
 
@@ -114,6 +115,7 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
   };
 
   const handleTutorClick = (topic: CalendarEvent) => {
+    onOpenChange(false); // Close the dialog before navigating
     navigate(`/ai-tutor/${topic.roadmap_id}?topicId=${topic.id}&title=${encodeURIComponent(topic.title)}`);
   };
 

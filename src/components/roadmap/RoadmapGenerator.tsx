@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Brain, GitBranch } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoadmapGenerator } from "@/hooks/useRoadmapGenerator";
+import { useNavigate } from "react-router-dom";
 import LearningGoalInput from "./LearningGoalInput";
 import DetailsInput from "./DetailsInput";
 import DurationSlider from "./DurationSlider";
@@ -12,6 +13,7 @@ import GenerationMethodSelector from "./GenerationMethodSelector";
 import ErrorDisplay from "./ErrorDisplay";
 import ProgressIndicator from "./ProgressIndicator";
 import SubmitButton from "./SubmitButton";
+import GenerationAnimation from "./GenerationAnimation";
 
 const RoadmapGenerator = () => {
   const [learningGoal, setLearningGoal] = useState("");
@@ -20,6 +22,7 @@ const RoadmapGenerator = () => {
   const [isAIGenerated, setIsAIGenerated] = useState(true); // Default to AI generation
   const [includeFlowchart, setIncludeFlowchart] = useState(true); // Default to create flowchart
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   const {
     isLoading,
@@ -30,18 +33,24 @@ const RoadmapGenerator = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await generateRoadmap({
+    const success = await generateRoadmap({
       learningGoal,
       description,
       duration,
       isAIGenerated,
       includeFlowchart
     });
+    
+    if (success) {
+      // Redirect to calendar page after successful generation
+      navigate("/calendar");
+    }
   };
 
   return (
     <div className="max-w-3xl mx-auto animate-fadeInUp">
-      <Card className="bg-glass shadow-lg border-2">
+      <Card className="bg-glass shadow-lg border-2 relative">
+        {isLoading && <GenerationAnimation />}
         <CardHeader>
           <CardTitle className="text-2xl flex items-center">
             <Brain className="mr-2 h-6 w-6 text-primary" />
