@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +13,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface Message {
   id: string;
@@ -170,6 +170,28 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
                   <div className="prose prose-sm max-w-none dark:prose-invert">
                     <ReactMarkdown
                       components={{
+                        // Enhanced table rendering
+                        table: ({ node, ...props }) => (
+                          <div className="w-full overflow-x-auto my-2 sm:my-3">
+                            <Table {...props} className="border border-border rounded-md w-full text-foreground text-xs sm:text-sm" />
+                          </div>
+                        ),
+                        thead: ({ node, ...props }) => <TableHeader {...props} />,
+                        tbody: ({ node, ...props }) => <TableBody {...props} />,
+                        tr: ({ node, ...props }) => <TableRow {...props} className="hover:bg-muted/10" />,
+                        th: ({ node, ...props }) => (
+                          <TableHead 
+                            className="font-semibold p-1.5 sm:p-2 border-b border-r border-border last:border-r-0 text-foreground bg-muted/30" 
+                            {...props} 
+                          />
+                        ),
+                        td: ({ node, ...props }) => (
+                          <TableCell 
+                            className="p-1.5 sm:p-2 border-r border-border last:border-r-0 align-middle" 
+                            {...props} 
+                          />
+                        ),
+                        
                         // Code block with syntax highlighting
                         code: ({ node, className, children, ...props }) => {
                           const match = /language-(\w+)/.exec(className || "");

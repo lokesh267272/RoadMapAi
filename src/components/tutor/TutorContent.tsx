@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, BookOpen } from "lucide-react";
@@ -9,10 +10,12 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
 interface TutorContentProps {
   topicId: string;
   topicTitle: string;
 }
+
 const TutorContent = ({
   topicId,
   topicTitle
@@ -26,6 +29,7 @@ const TutorContent = ({
       generateContent();
     }
   }, [topicId, topicTitle]);
+
   const generateContent = async () => {
     if (!topicId || !topicTitle) return;
     setIsLoading(true);
@@ -51,6 +55,7 @@ const TutorContent = ({
       setIsLoading(false);
     }
   };
+
   return <Card className="h-full flex flex-col shadow-md">
       <CardHeader className="p-4 pb-3 sm:p-5 sm:pb-3">
         <div className="flex items-center">
@@ -67,33 +72,27 @@ const TutorContent = ({
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div> : topicId ? <div className="prose prose-sm max-w-none dark:prose-invert p-3 sm:p-6">
             <ReactMarkdown components={{
-          // Custom table rendering
-          table: ({
-            node,
-            ...props
-          }) => <div className="my-4 sm:my-6 overflow-x-auto">
-                    <Table {...props} className="border rounded-md text-sm" />
-                  </div>,
-          thead: ({
-            node,
-            ...props
-          }) => <TableHeader {...props} />,
-          tbody: ({
-            node,
-            ...props
-          }) => <TableBody {...props} />,
-          tr: ({
-            node,
-            ...props
-          }) => <TableRow {...props} />,
-          th: ({
-            node,
-            ...props
-          }) => <TableHead className="font-semibold bg-muted/50" {...props} />,
-          td: ({
-            node,
-            ...props
-          }) => <TableCell className="p-2 sm:p-4" {...props} />,
+          // Enhanced table rendering
+          table: ({ node, ...props }) => (
+            <div className="my-4 sm:my-6 w-full overflow-x-auto">
+              <Table {...props} className="border border-border rounded-md w-full text-foreground" />
+            </div>
+          ),
+          thead: ({ node, ...props }) => <TableHeader {...props} />,
+          tbody: ({ node, ...props }) => <TableBody {...props} />,
+          tr: ({ node, ...props }) => <TableRow {...props} className="hover:bg-muted/30" />,
+          th: ({ node, ...props }) => (
+            <TableHead 
+              className="font-semibold text-foreground bg-muted/50 p-2 sm:p-4 border-b border-r border-border last:border-r-0" 
+              {...props} 
+            />
+          ),
+          td: ({ node, ...props }) => (
+            <TableCell 
+              className="p-2 sm:p-4 border-r border-border last:border-r-0 align-middle" 
+              {...props} 
+            />
+          ),
           // Code block with syntax highlighting
           code: ({
             node,
@@ -109,35 +108,14 @@ const TutorContent = ({
                     </code>;
           },
           // Enhanced headings
-          h1: ({
-            node,
-            ...props
-          }) => <h1 className="text-xl sm:text-2xl font-bold mt-6 sm:mt-8 mb-3 sm:mb-4 text-black" />,
-          h2: ({
-            node,
-            ...props
-          }) => <h2 className="text-lg sm:text-xl font-bold mt-5 sm:mt-6 mb-2 sm:mb-3 text-primary-foreground" />,
-          h3: ({
-            node,
-            ...props
-          }) => <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-5 mb-2 sm:mb-2.5 text-black" />,
+          h1: ({ node, ...props }) => <h1 className="text-xl sm:text-2xl font-bold mt-6 sm:mt-8 mb-3 sm:mb-4 text-foreground" {...props} />,
+          h2: ({ node, ...props }) => <h2 className="text-lg sm:text-xl font-bold mt-5 sm:mt-6 mb-2 sm:mb-3 text-foreground" {...props} />,
+          h3: ({ node, ...props }) => <h3 className="text-base sm:text-lg font-semibold mt-4 sm:mt-5 mb-2 sm:mb-2.5 text-foreground" {...props} />,
           // Enhanced paragraphs and lists
-          p: ({
-            node,
-            ...props
-          }) => <p className="my-3 sm:my-4 leading-relaxed text-base" {...props} />,
-          ul: ({
-            node,
-            ...props
-          }) => <ul className="my-3 sm:my-4 ml-4 sm:ml-6 space-y-1.5 sm:space-y-2 list-disc" {...props} />,
-          ol: ({
-            node,
-            ...props
-          }) => <ol className="my-3 sm:my-4 ml-4 sm:ml-6 space-y-1.5 sm:space-y-2 list-decimal" {...props} />,
-          li: ({
-            node,
-            ...props
-          }) => <li className="leading-relaxed" {...props} />
+          p: ({ node, ...props }) => <p className="my-3 sm:my-4 leading-relaxed text-base text-foreground" {...props} />,
+          ul: ({ node, ...props }) => <ul className="my-3 sm:my-4 ml-4 sm:ml-6 space-y-1.5 sm:space-y-2 list-disc" {...props} />,
+          ol: ({ node, ...props }) => <ol className="my-3 sm:my-4 ml-4 sm:ml-6 space-y-1.5 sm:space-y-2 list-decimal" {...props} />,
+          li: ({ node, ...props }) => <li className="leading-relaxed text-foreground" {...props} />
         }}>
               {content}
             </ReactMarkdown>
