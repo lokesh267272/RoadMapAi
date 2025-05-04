@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
-import { Loader2, ArrowLeft, MessageSquare, X } from "lucide-react";
+import { Loader2, ArrowLeft, MessageSquare } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchRoadmapData } from "@/components/flowchart/FlowchartUtils";
 import { RoadmapNode, RoadmapEdge } from "@/components/flowchart/FlowchartTypes";
@@ -55,42 +55,41 @@ const AiTutor = () => {
   return (
     <div className="min-h-screen w-full pt-16 pb-8 bg-gradient-to-b from-background to-muted/30">
       <div className="container mx-auto px-3 animate-fadeInUp h-full">
-        {/* Mobile Header */}
-        {isMobile && (
-          <div className="flex items-center justify-between mb-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={handleBackToCalendar}
-              className="h-9 w-9"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span className="sr-only">Back to Calendar</span>
-            </Button>
-            <h2 className="text-lg font-medium truncate flex-1 mx-2">
-              {topicTitle || "AI Tutor"}
-            </h2>
-            {!topicId ? null : (
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9">
-                    Topics
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-[85vw] sm:w-[350px] p-0">
-                  <div className="h-full overflow-hidden">
-                    <TutorSidebar 
-                      roadmapId={roadmapId || ""} 
-                      roadmapTitle={roadmapTitle}
-                      nodes={nodes}
-                      currentTopicId={topicId || ""}
-                    />
-                  </div>
-                </SheetContent>
-              </Sheet>
-            )}
-          </div>
-        )}
+        {/* Header with Back Button - Always visible on both mobile and desktop */}
+        <div className="flex items-center justify-between mb-4">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleBackToCalendar}
+            className="h-9 w-9"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            <span className="sr-only">Back to Calendar</span>
+          </Button>
+          <h2 className="text-lg font-medium truncate flex-1 mx-2">
+            {topicTitle || "AI Tutor"}
+          </h2>
+          {/* Topics button - only show on mobile */}
+          {isMobile && topicId && (
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9">
+                  Topics
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[85vw] sm:w-[350px] p-0">
+                <div className="h-full overflow-hidden">
+                  <TutorSidebar 
+                    roadmapId={roadmapId || ""} 
+                    roadmapTitle={roadmapTitle}
+                    nodes={nodes}
+                    currentTopicId={topicId || ""}
+                  />
+                </div>
+              </SheetContent>
+            </Sheet>
+          )}
+        </div>
 
         <div className="flex flex-col md:flex-row h-[calc(100vh-10rem)] gap-5">
           {/* Left Panel - Topics (hidden on mobile) */}

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, BookOpen, RefreshCw } from "lucide-react";
@@ -22,7 +21,6 @@ interface TutorContentProps {
 
 interface CachedContent {
   content: string;
-  timestamp: number;
 }
 
 const TutorContent = ({
@@ -67,15 +65,6 @@ const TutorContent = ({
       if (!cachedItem) return null;
       
       const parsedItem: CachedContent = JSON.parse(cachedItem);
-      const now = Date.now();
-      
-      // Check if cache is expired
-      if (now - parsedItem.timestamp > CACHE_EXPIRATION) {
-        // Cache expired, remove it
-        localStorage.removeItem(`ai_tutor_${topicId}`);
-        return null;
-      }
-      
       return parsedItem;
     } catch (error) {
       console.error("Error reading from cache:", error);
@@ -86,8 +75,7 @@ const TutorContent = ({
   const cacheContent = (topicId: string, content: string) => {
     try {
       const cacheItem: CachedContent = {
-        content,
-        timestamp: Date.now()
+        content
       };
       
       localStorage.setItem(`ai_tutor_${topicId}`, JSON.stringify(cacheItem));

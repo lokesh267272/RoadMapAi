@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,7 +29,6 @@ interface TutorChatProps {
 
 interface CachedMessages {
   messages: Message[];
-  timestamp: number;
 }
 
 // Cache expiration time (24 hours in milliseconds)
@@ -92,14 +90,6 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
       if (!cachedItem) return null;
       
       const parsedItem: CachedMessages = JSON.parse(cachedItem);
-      const now = Date.now();
-      
-      // Check if cache is expired
-      if (now - parsedItem.timestamp > CACHE_EXPIRATION) {
-        // Cache expired, remove it
-        localStorage.removeItem(`ai_tutor_chat_${topicId}`);
-        return null;
-      }
       
       // Convert string timestamps back to Date objects
       const messagesWithDates = parsedItem.messages.map(msg => ({
@@ -108,7 +98,6 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
       }));
       
       return {
-        ...parsedItem,
         messages: messagesWithDates
       };
     } catch (error) {
@@ -120,8 +109,7 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
   const cacheMessages = (topicId: string, messages: Message[]) => {
     try {
       const cacheItem: CachedMessages = {
-        messages,
-        timestamp: Date.now()
+        messages
       };
       
       localStorage.setItem(`ai_tutor_chat_${topicId}`, JSON.stringify(cacheItem));
@@ -343,7 +331,19 @@ const TutorChat = ({ topicId, topicTitle }: TutorChatProps) => {
                 </div>
               </div>
             ))}
-            {typingIndicator && <TypingIndicator />}
+            {typingIndicator && (
+              <div className="flex max-w-[80%] rounded-2xl p-3 bg-muted">
+                <div className="flex items-center gap-2 mb-1">
+                  <Bot className="h-4 w-4" />
+                  <span className="text-xs font-medium">AI Tutor</span>
+                </div>
+                <div className="flex items-center ml-2">
+                  <span className="typing-dot"></span>
+                  <span className="typing-dot"></span>
+                  <span className="typing-dot"></span>
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
         </ScrollArea>
