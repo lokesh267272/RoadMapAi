@@ -154,8 +154,8 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
         toast.success("Roadmap generated successfully!");
       }
       
-      // Redirect to dashboard
-      navigate("/dashboard");
+      // Redirect to dashboard with calendar tab
+      navigate("/dashboard?tab=calendar");
     } catch (error: any) {
       console.error("Error creating roadmap:", error);
       setError(error.message || "Failed to generate roadmap. Please try again.");
