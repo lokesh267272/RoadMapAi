@@ -1,7 +1,6 @@
 
 interface CachedContent {
   content: string;
-  timestamp?: number;
 }
 
 /**
@@ -27,8 +26,7 @@ export const getCachedContent = (topicId: string): CachedContent | null => {
 export const cacheContent = (topicId: string, content: string) => {
   try {
     const cacheItem: CachedContent = {
-      content,
-      timestamp: Date.now()
+      content
     };
     
     localStorage.setItem(`ai_tutor_${topicId}`, JSON.stringify(cacheItem));
