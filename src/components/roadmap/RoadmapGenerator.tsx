@@ -41,14 +41,16 @@ const RoadmapGenerator = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto animate-fadeInUp">
-      <GenerationAnimation 
-        isLoading={isLoading} 
-        progress={generationProgress} 
-        isAIGenerated={isAIGenerated} 
-      />
+    <div className="max-w-3xl mx-auto">
+      {isLoading && (
+        <GenerationAnimation 
+          isLoading={isLoading} 
+          progress={generationProgress} 
+          isAIGenerated={isAIGenerated} 
+        />
+      )}
       
-      <Card className="bg-glass shadow-lg border-2">
+      <Card className={`bg-glass shadow-lg border-2 ${isLoading ? 'opacity-60' : 'animate-fadeInUp'}`}>
         <CardHeader>
           <CardTitle className="text-2xl flex items-center">
             <Brain className="mr-2 h-6 w-6 text-primary" />
@@ -98,12 +100,10 @@ const RoadmapGenerator = () => {
 
             <ErrorDisplay error={error} />
 
-            {!isLoading && (
-              <ProgressIndicator 
-                isLoading={isLoading}
-                value={generationProgress}
-              />
-            )}
+            <ProgressIndicator 
+              isLoading={isLoading}
+              value={generationProgress}
+            />
 
             <SubmitButton 
               isLoading={isLoading}

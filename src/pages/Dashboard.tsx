@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import DashboardComponent from "@/components/Dashboard";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,13 +10,20 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
+  const [initialTabSet, setInitialTabSet] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
       toast.error("Please sign in to view your dashboard");
       navigate("/auth");
+      return;
     }
-  }, [user, isLoading, navigate]);
+    
+    // Set initialTabSet to true once we process the initial tab parameter
+    if (tabParam && !initialTabSet) {
+      setInitialTabSet(true);
+    }
+  }, [user, isLoading, navigate, tabParam, initialTabSet]);
 
   return (
     <div className="min-h-screen w-full pt-16 pb-8">
