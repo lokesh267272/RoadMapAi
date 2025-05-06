@@ -12,7 +12,6 @@ import GenerationMethodSelector from "./GenerationMethodSelector";
 import ErrorDisplay from "./ErrorDisplay";
 import ProgressIndicator from "./ProgressIndicator";
 import SubmitButton from "./SubmitButton";
-import GenerationAnimation from "./GenerationAnimation";
 
 const RoadmapGenerator = () => {
   const [learningGoal, setLearningGoal] = useState("");
@@ -41,16 +40,8 @@ const RoadmapGenerator = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
-      {isLoading && (
-        <GenerationAnimation 
-          isLoading={isLoading} 
-          progress={generationProgress} 
-          isAIGenerated={isAIGenerated} 
-        />
-      )}
-      
-      <Card className={`bg-glass shadow-lg border-2 ${isLoading ? 'opacity-60' : 'animate-fadeInUp'}`}>
+    <div className="max-w-3xl mx-auto animate-fadeInUp">
+      <Card className="bg-glass shadow-lg border-2">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center">
             <Brain className="mr-2 h-6 w-6 text-primary" />

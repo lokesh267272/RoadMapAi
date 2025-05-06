@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 export interface RoadmapFormData {
@@ -17,7 +17,6 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const location = useLocation();
 
   const generateRoadmap = async (formData: RoadmapFormData) => {
     const { learningGoal, description, duration, isAIGenerated, includeFlowchart = true } = formData;
@@ -149,21 +148,14 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
       
       setGenerationProgress(100);
       
-      // Show success toast first
       if (includeFlowchart) {
         toast.success("Roadmap generated with flowchart! You can view it in the flowchart view.");
       } else {
         toast.success("Roadmap generated successfully!");
       }
-
-      // Check if we're already on the dashboard page
-      if (location.pathname === '/dashboard') {
-        // If already on dashboard, just update the search params without full navigation
-        navigate('/dashboard?tab=calendar', { replace: true });
-      } else {
-        // If not on dashboard, navigate to it
-        navigate('/dashboard?tab=calendar');
-      }
+      
+      // Redirect to dashboard
+      navigate("/dashboard");
     } catch (error: any) {
       console.error("Error creating roadmap:", error);
       setError(error.message || "Failed to generate roadmap. Please try again.");
