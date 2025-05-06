@@ -154,7 +154,7 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
         toast.success("Roadmap generated successfully! Redirecting to calendar view...");
       }
       
-      // Automatically navigate to the calendar view after successful generation
+      // Navigate to dashboard with calendar tab selected to show the newly created roadmap
       navigate("/dashboard?tab=calendar");
       return true;
     } catch (error: any) {
