@@ -154,6 +154,9 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
         toast.success("Roadmap generated successfully! Redirecting to calendar view...");
       }
       
+      // Navigate to calendar view
+      navigate("/calendar");
+      
       return true;
     } catch (error: any) {
       console.error("Error creating roadmap:", error);

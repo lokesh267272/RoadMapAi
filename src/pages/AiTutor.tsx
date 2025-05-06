@@ -26,7 +26,6 @@ const AiTutor = () => {
   const [roadmapTitle, setRoadmapTitle] = useState("");
   const [nodes, setNodes] = useState<RoadmapNode[]>([]);
   const [edges, setEdges] = useState<RoadmapEdge[]>([]);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   
   useEffect(() => {
     if (roadmapId) {
