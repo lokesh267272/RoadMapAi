@@ -25,13 +25,13 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
     
     if (!learningGoal.trim()) {
       toast.error("Please enter a learning goal");
-      return false;
+      return;
     }
 
     if (!userId) {
       toast.error("You must be logged in to create a roadmap");
       navigate("/auth");
-      return false;
+      return;
     }
     
     setIsLoading(true);
@@ -149,19 +149,17 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
       setGenerationProgress(100);
       
       if (includeFlowchart) {
-        toast.success("Roadmap generated with flowchart! Redirecting to calendar view...");
+        toast.success("Roadmap generated with flowchart! You can view it in the flowchart view.");
       } else {
-        toast.success("Roadmap generated successfully! Redirecting to calendar view...");
+        toast.success("Roadmap generated successfully!");
       }
       
-      // Navigate to dashboard with calendar tab selected to show the newly created roadmap
-      navigate("/dashboard?tab=calendar");
-      return true;
+      // Redirect to dashboard
+      navigate("/dashboard");
     } catch (error: any) {
       console.error("Error creating roadmap:", error);
       setError(error.message || "Failed to generate roadmap. Please try again.");
       toast.error(error.message || "Failed to generate roadmap. Please try again.");
-      return false;
     } finally {
       setIsLoading(false);
       setGenerationProgress(0);
