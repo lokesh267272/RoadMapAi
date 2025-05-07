@@ -61,18 +61,19 @@ async function generateContentWithGemini(topicTitle: string): Promise<string> {
       1. If the topic is **technical (e.g., programming, math)**:
          - Include clear explanations of core concepts.
          - Use relevant code examples (if applicable).
-         - Use tables only if they improve clarity.
+         - DO NOT use tables for any purpose.
          - Keep the response under 1000 words.
 
       2. If the topic is **non-technical (e.g., soft skills, history, goals)**:
          - Focus on practical insights and conceptual clarity.
-         - Avoid code or tables unless absolutely necessary.
+         - Avoid code and DO NOT use tables.
          - Prefer bullet points and short paragraphs.
          - Keep it under 700 words.
 
       End your response with a short summary of key takeaways.
       
-      Format your response in Markdown with proper headings, code blocks with language specification, and tables.
+      Format your response in Markdown with proper headings and code blocks with language specification. 
+      DO NOT INCLUDE ANY TABLES IN THE OUTPUT.
       The content should be educational, accurate, and engaging for someone learning this topic.
     `;
 

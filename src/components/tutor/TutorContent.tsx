@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, BookOpen, RefreshCw, Play } from "lucide-react";
@@ -8,7 +9,6 @@ import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { cn } from "@/lib/utils";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 
 // Cache expiration time (24 hours in milliseconds)
@@ -183,27 +183,6 @@ const TutorContent = ({
           <div className="prose prose-sm max-w-none dark:prose-invert p-3 sm:p-6">
             <ReactMarkdown
               components={{
-                // Enhanced table rendering components
-                table: ({ node, ...props }) => (
-                  <div className="my-4 sm:my-6 w-full overflow-x-auto">
-                    <Table {...props} className="border border-border rounded-md w-full text-foreground" />
-                  </div>
-                ),
-                thead: ({ node, ...props }) => <TableHeader {...props} />,
-                tbody: ({ node, ...props }) => <TableBody {...props} />,
-                tr: ({ node, ...props }) => <TableRow {...props} className="hover:bg-muted/30" />,
-                th: ({ node, ...props }) => (
-                  <TableHead 
-                    className="font-semibold text-foreground bg-muted/50 p-2 sm:p-4 border-b border-r border-border last:border-r-0" 
-                    {...props} 
-                  />
-                ),
-                td: ({ node, ...props }) => (
-                  <TableCell 
-                    className="p-2 sm:p-4 border-r border-border last:border-r-0 align-middle" 
-                    {...props} 
-                  />
-                ),
                 // Code block with syntax highlighting
                 code: ({
                   node,
