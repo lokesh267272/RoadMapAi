@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Brain, GitBranch } from "lucide-react";
@@ -12,6 +11,7 @@ import GenerationMethodSelector from "./GenerationMethodSelector";
 import ErrorDisplay from "./ErrorDisplay";
 import ProgressIndicator from "./ProgressIndicator";
 import SubmitButton from "./SubmitButton";
+import { LoadingAnimation } from "./LoadingAnimation";
 
 const RoadmapGenerator = () => {
   const [learningGoal, setLearningGoal] = useState("");
@@ -41,6 +41,7 @@ const RoadmapGenerator = () => {
 
   return (
     <div className="max-w-3xl mx-auto animate-fadeInUp">
+      <LoadingAnimation isLoading={isLoading} />
       <Card className="bg-glass shadow-lg border-2">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center">

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { Loader2, ArrowLeft, MessageSquare } from "lucide-react";
@@ -41,7 +40,7 @@ const AiTutor = () => {
   }, [roadmapId]);
 
   const handleBackToCalendar = () => {
-    navigate(`/calendar`);
+    navigate(`/dashboard?tab=calendar`);
   };
 
   if (isLoading) {
