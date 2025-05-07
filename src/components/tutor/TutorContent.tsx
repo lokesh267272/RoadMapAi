@@ -135,20 +135,27 @@ const TutorContent = ({
     try {
       // Create an AbortController to cancel the fetch if needed
       abortControllerRef.current = new AbortController();
-      const signal = abortControllerRef.current.signal;
 
+      // Create the request body
+      const requestBody = {
+        topicId,
+        topicTitle,
+      };
+
+      // Make the function call without passing the signal directly to supabase.functions.invoke
       const { data: eventSource, error } = await supabase.functions.invoke(
         "generate-tutor-content",
         {
-          body: {
-            topicId,
-            topicTitle,
-          },
-          signal,
+          body: requestBody
         }
       );
 
       if (error) throw error;
+      
+      // If the request was aborted during the invoke call, stop processing
+      if (abortControllerRef.current?.signal.aborted) {
+        return;
+      }
 
       // Check if the response is a ReadableStream
       if (!(eventSource instanceof ReadableStream)) {
@@ -162,6 +169,12 @@ const TutorContent = ({
 
       // Process the stream
       while (true) {
+        // Check if aborted before reading the next chunk
+        if (abortControllerRef.current?.signal.aborted) {
+          reader.releaseLock();
+          break;
+        }
+
         const { done, value } = await reader.read();
         if (done) break;
 
