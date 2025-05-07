@@ -54,14 +54,23 @@ serve(async (req) => {
 async function generateContentWithGemini(topicTitle: string): Promise<string> {
   try {
     const prompt = `
-      Create a comprehensive tutorial on "${topicTitle}" for a learning platform.
-      
-      Your response should include:
-      1. A clear introduction to ${topicTitle}
-      2. Core concepts and fundamentals
-      3. Practical examples including code snippets where relevant
-      4. Tables to organize information when appropriate
-      5. Key takeaways and best practices
+      You are an expert tutor helping learners understand the topic: "${topicTitle}".
+
+      Please generate a concise and structured tutorial. Follow these rules:
+
+      1. If the topic is **technical (e.g., programming, math)**:
+         - Include clear explanations of core concepts.
+         - Use relevant code examples (if applicable).
+         - Use tables only if they improve clarity.
+         - Keep the response under 1000 words.
+
+      2. If the topic is **non-technical (e.g., soft skills, history, goals)**:
+         - Focus on practical insights and conceptual clarity.
+         - Avoid code or tables unless absolutely necessary.
+         - Prefer bullet points and short paragraphs.
+         - Keep it under 700 words.
+
+      End your response with a short summary of key takeaways.
       
       Format your response in Markdown with proper headings, code blocks with language specification, and tables.
       The content should be educational, accurate, and engaging for someone learning this topic.
