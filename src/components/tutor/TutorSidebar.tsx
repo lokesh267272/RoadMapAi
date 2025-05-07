@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { RoadmapNode } from "@/components/flowchart/FlowchartTypes";
@@ -23,9 +24,21 @@ const TutorSidebar = ({ roadmapId, roadmapTitle, nodes, currentTopicId }: TutorS
     navigate(`/ai-tutor/${roadmapId}?topicId=${nodeId}&title=${encodeURIComponent(label)}`);
   };
 
-  // Filter out start and end nodes, and sort by day
+  // Filter out nodes that match "Week X" pattern or match the roadmap title
   const topicNodes = nodes
-    .filter(node => node.type !== "start" && node.type !== "end")
+    .filter(node => {
+      // Filter out start and end nodes
+      if (node.type === "start" || node.type === "end") return false;
+      
+      // Filter out nodes with labels like "Week X" (e.g., "Week 1", "Week 2")
+      const nodeLabel = node.data?.label || "";
+      if (/^Week \d+$/i.test(nodeLabel)) return false;
+      
+      // Filter out nodes that match the roadmap title
+      if (nodeLabel === roadmapTitle) return false;
+      
+      return true;
+    })
     .sort((a, b) => {
       // Access day property safely with type assertion
       const dayA = ((a.data as any)?.day !== undefined) ? Number((a.data as any).day) : 0;
