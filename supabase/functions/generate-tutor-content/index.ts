@@ -26,18 +26,22 @@ serve(async (req) => {
       throw new Error("Missing Gemini API key");
     }
 
-    // Generate content using Gemini API
-    const content = await generateContentWithGemini(topicTitle);
+    // Prepare the response for streaming
+    const responseStream = new TransformStream();
+    const writer = responseStream.writable.getWriter();
+    const encoder = new TextEncoder();
 
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        content
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    // Start generating content using Gemini API with streaming
+    generateStreamingContentWithGemini(topicTitle, writer, encoder);
+
+    return new Response(responseStream.readable, { 
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
       }
-    );
+    });
   } catch (error) {
     console.error("Error in generate-tutor-content:", error);
     
@@ -51,7 +55,11 @@ serve(async (req) => {
   }
 });
 
-async function generateContentWithGemini(topicTitle: string): Promise<string> {
+async function generateStreamingContentWithGemini(
+  topicTitle: string, 
+  writer: WritableStreamDefaultWriter<Uint8Array>, 
+  encoder: TextEncoder
+) {
   try {
     const prompt = `
       You are an expert tutor helping learners understand the topic: "${topicTitle}".
@@ -77,7 +85,7 @@ async function generateContentWithGemini(topicTitle: string): Promise<string> {
       The content should be educational, accurate, and engaging for someone learning this topic.
     `;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:streamGenerateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -101,23 +109,69 @@ async function generateContentWithGemini(topicTitle: string): Promise<string> {
       }),
     });
 
-    const data = await response.json();
-    
     if (!response.ok) {
-      console.error("Gemini API error:", data);
-      throw new Error(`Gemini API error: ${data.error?.message || "Unknown error"}`);
+      const errorData = await response.json();
+      console.error("Gemini API error:", errorData);
+      throw new Error(`Gemini API error: ${errorData.error?.message || "Unknown error"}`);
     }
 
-    // Extract text from the response
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const reader = response.body?.getReader();
     
-    if (!content) {
-      throw new Error("Failed to generate content");
+    if (!reader) {
+      throw new Error("Response body is not readable");
     }
 
-    return content;
+    let fullContent = "";
+    
+    // Read from the stream and process the chunks
+    while (true) {
+      const { done, value } = await reader.read();
+      
+      if (done) {
+        break;
+      }
+      
+      // Decode the chunk
+      const chunk = new TextDecoder().decode(value);
+      
+      try {
+        // Parse each line as a separate JSON object
+        const lines = chunk.split('\n').filter(line => line.trim() !== '');
+        
+        for (const line of lines) {
+          if (line.includes('"text":')) {
+            try {
+              const jsonData = JSON.parse(line);
+              const textContent = jsonData.candidates?.[0]?.content?.parts?.[0]?.text;
+              
+              if (textContent) {
+                fullContent += textContent;
+                
+                // Write the text content to the response stream
+                await writer.write(encoder.encode(`data: ${JSON.stringify({ content: textContent })}\n\n`));
+              }
+            } catch (e) {
+              console.error("Error parsing JSON line:", e);
+            }
+          }
+        }
+      } catch (parseError) {
+        console.error("Error processing chunk:", parseError);
+      }
+    }
+    
+    // Send the end of stream message
+    await writer.write(encoder.encode(`data: ${JSON.stringify({ done: true, fullContent })}\n\n`));
   } catch (error) {
-    console.error("Error generating content with Gemini:", error);
-    throw error;
+    console.error("Error generating streaming content with Gemini:", error);
+    
+    // Send error message to the stream
+    await writer.write(encoder.encode(`data: ${JSON.stringify({ error: error.message })}\n\n`));
+  } finally {
+    try {
+      await writer.close();
+    } catch (e) {
+      console.error("Error closing writer:", e);
+    }
   }
 }
