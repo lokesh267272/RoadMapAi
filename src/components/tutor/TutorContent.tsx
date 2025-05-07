@@ -34,6 +34,7 @@ const TutorContent = ({
   const [streamProgress, setStreamProgress] = useState(0);
   const [isFromCache, setIsFromCache] = useState(false);
   const [shouldGenerate, setShouldGenerate] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const contentEndRef = useRef<HTMLDivElement>(null);
   
@@ -57,6 +58,7 @@ const TutorContent = ({
   useEffect(() => {
     // Clear previous content when topic changes
     setContent("");
+    setErrorMessage(null);
     setIsFromCache(false);
     setShouldGenerate(false);
     setIsStreaming(false);
@@ -82,6 +84,7 @@ const TutorContent = ({
     if (!topicId || !topicTitle) return;
     setIsLoading(true);
     setContent(""); // Clear previous content
+    setErrorMessage(null);
     setIsFromCache(false);
     
     // Check if we have cached content
@@ -130,6 +133,7 @@ const TutorContent = ({
     setIsStreaming(true);
     setContent(""); // Clear previous content
     setStreamProgress(0);
+    setErrorMessage(null);
     setIsFromCache(false);
 
     try {
@@ -142,7 +146,7 @@ const TutorContent = ({
         topicTitle,
       };
 
-      // Make the function call without passing the signal directly to supabase.functions.invoke
+      // Make the function call
       const { data: eventSource, error } = await supabase.functions.invoke(
         "generate-tutor-content",
         {
@@ -150,7 +154,10 @@ const TutorContent = ({
         }
       );
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error invoking function:", error);
+        throw new Error(error.message || "Failed to invoke function");
+      }
       
       // If the request was aborted during the invoke call, stop processing
       if (abortControllerRef.current?.signal.aborted) {
@@ -209,6 +216,7 @@ const TutorContent = ({
               }
             } catch (e) {
               console.error("Error parsing event:", e);
+              setErrorMessage("Error parsing response data");
             }
           }
         }
@@ -216,11 +224,12 @@ const TutorContent = ({
 
     } catch (error) {
       console.error("Error generating streamed tutor content:", error);
+      setErrorMessage(error instanceof Error ? error.message : "An unknown error occurred");
       toast.error("Failed to generate tutorial content");
-      setContent("Failed to load content. Please try again later.");
+      setIsStreaming(false);
     } finally {
       setIsLoading(false);
-      abortControllerRef.current = null;
+      // Don't set abortControllerRef to null here to allow explicit cancellation
     }
   };
 
@@ -335,6 +344,11 @@ const TutorContent = ({
           <div className="text-center text-muted-foreground p-6 sm:p-12 flex flex-col items-center justify-center h-64">
             <BookOpen className="w-8 sm:w-10 h-8 sm:h-10 mb-3 sm:mb-4 text-muted-foreground/60" />
             <p className="text-base sm:text-lg font-medium mb-4">{topicTitle}</p>
+            {errorMessage ? (
+              <div className="text-destructive mb-4 text-sm">
+                <p>Error: {errorMessage}</p>
+              </div>
+            ) : null}
             <Button 
               onClick={handleGenerateContent} 
               className="flex items-center gap-2"

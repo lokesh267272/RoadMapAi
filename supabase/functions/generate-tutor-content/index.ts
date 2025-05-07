@@ -26,17 +26,18 @@ serve(async (req) => {
       throw new Error("Missing Gemini API key");
     }
 
-    // Prepare the response for streaming
-    const responseStream = new TransformStream();
-    const writer = responseStream.writable.getWriter();
+    // Create a transform stream for the response
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
     const encoder = new TextEncoder();
 
-    // Start generating content using Gemini API with streaming
-    generateStreamingContentWithGemini(topicTitle, writer, encoder);
+    // Start the async process to generate content
+    generateTutorContent(topicTitle, writer, encoder);
 
-    return new Response(responseStream.readable, { 
-      headers: { 
-        ...corsHeaders, 
+    // Return the readable stream in the response
+    return new Response(readable, {
+      headers: {
+        ...corsHeaders,
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
@@ -55,7 +56,7 @@ serve(async (req) => {
   }
 });
 
-async function generateStreamingContentWithGemini(
+async function generateTutorContent(
   topicTitle: string, 
   writer: WritableStreamDefaultWriter<Uint8Array>, 
   encoder: TextEncoder
@@ -85,7 +86,9 @@ async function generateStreamingContentWithGemini(
       The content should be educational, accurate, and engaging for someone learning this topic.
     `;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:streamGenerateContent?key=${GEMINI_API_KEY}`, {
+    // Make request to Gemini API with streaming enabled
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:streamGenerateContent?key=${GEMINI_API_KEY}`;
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -110,68 +113,101 @@ async function generateStreamingContentWithGemini(
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Gemini API error:", errorData);
-      throw new Error(`Gemini API error: ${errorData.error?.message || "Unknown error"}`);
+      const errorText = await response.text();
+      console.error("Gemini API error response:", errorText);
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
     }
 
-    const reader = response.body?.getReader();
-    
-    if (!reader) {
+    if (!response.body) {
       throw new Error("Response body is not readable");
     }
 
+    // Process the streaming response
+    const reader = response.body.getReader();
     let fullContent = "";
-    
-    // Read from the stream and process the chunks
-    while (true) {
-      const { done, value } = await reader.read();
-      
-      if (done) {
-        break;
-      }
-      
-      // Decode the chunk
-      const chunk = new TextDecoder().decode(value);
-      
-      try {
-        // Parse each line as a separate JSON object
-        const lines = chunk.split('\n').filter(line => line.trim() !== '');
+    const decoder = new TextDecoder();
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
         
-        for (const line of lines) {
-          if (line.includes('"text":')) {
-            try {
-              const jsonData = JSON.parse(line);
-              const textContent = jsonData.candidates?.[0]?.content?.parts?.[0]?.text;
-              
-              if (textContent) {
-                fullContent += textContent;
-                
-                // Write the text content to the response stream
-                await writer.write(encoder.encode(`data: ${JSON.stringify({ content: textContent })}\n\n`));
+        if (done) {
+          break;
+        }
+        
+        // Decode the chunk
+        const chunk = decoder.decode(value);
+        let content = "";
+        
+        try {
+          // Parse the chunk as JSON
+          const parsedData = JSON.parse(chunk);
+          
+          if (parsedData.candidates && 
+              parsedData.candidates[0] && 
+              parsedData.candidates[0].content && 
+              parsedData.candidates[0].content.parts) {
+            
+            for (const part of parsedData.candidates[0].content.parts) {
+              if (part.text) {
+                content += part.text;
               }
-            } catch (e) {
-              console.error("Error parsing JSON line:", e);
+            }
+            
+            if (content) {
+              fullContent += content;
+              // Send each content chunk to the client
+              await writer.write(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
             }
           }
+        } catch (parseError) {
+          // Handle line-by-line parsing
+          try {
+            const lines = chunk.split('\n').filter(line => line.trim());
+            
+            for (const line of lines) {
+              try {
+                const parsedLine = JSON.parse(line);
+                if (parsedLine.candidates && 
+                    parsedLine.candidates[0] && 
+                    parsedLine.candidates[0].content && 
+                    parsedLine.candidates[0].content.parts) {
+                  
+                  for (const part of parsedLine.candidates[0].content.parts) {
+                    if (part.text) {
+                      content += part.text;
+                    }
+                  }
+                }
+              } catch (lineParseError) {
+                console.log("Could not parse line as JSON:", line.slice(0, 50) + "...");
+              }
+            }
+            
+            if (content) {
+              fullContent += content;
+              await writer.write(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+            }
+          } catch (lineProcessError) {
+            console.error("Error processing lines:", lineProcessError);
+          }
         }
-      } catch (parseError) {
-        console.error("Error processing chunk:", parseError);
       }
-    }
-    
-    // Send the end of stream message
-    await writer.write(encoder.encode(`data: ${JSON.stringify({ done: true, fullContent })}\n\n`));
-  } catch (error) {
-    console.error("Error generating streaming content with Gemini:", error);
-    
-    // Send error message to the stream
-    await writer.write(encoder.encode(`data: ${JSON.stringify({ error: error.message })}\n\n`));
-  } finally {
-    try {
+      
+      // Send the completion message with the full content
+      await writer.write(encoder.encode(`data: ${JSON.stringify({ done: true, fullContent })}\n\n`));
+    } finally {
       await writer.close();
-    } catch (e) {
-      console.error("Error closing writer:", e);
+    }
+  } catch (error) {
+    console.error("Error generating tutor content:", error);
+    
+    try {
+      // Send error message to client
+      await writer.write(encoder.encode(`data: ${JSON.stringify({ error: error.message })}\n\n`));
+      await writer.close();
+    } catch (closeError) {
+      console.error("Error closing writer:", closeError);
     }
   }
 }
