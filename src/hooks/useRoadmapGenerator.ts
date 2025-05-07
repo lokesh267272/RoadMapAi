@@ -149,7 +149,7 @@ export const useRoadmapGenerator = (userId: string | undefined) => {
       setGenerationProgress(100);
       
       if (includeFlowchart) {
-        toast.success("Roadmap generated with flowchart! You can view it in the flowchart view.");
+        toast.success("Roadmap generated with flowchart! You can view it in the Calender.");
       } else {
         toast.success("Roadmap generated successfully!");
       }
