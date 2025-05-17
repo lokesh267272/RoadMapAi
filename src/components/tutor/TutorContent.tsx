@@ -10,6 +10,8 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { LoadingAnimation } from "@/components/roadmap/LoadingAnimation";
+import { Progress } from "@/components/ui/progress";
 
 // Cache expiration time (24 hours in milliseconds)
 const CACHE_EXPIRATION = 24 * 60 * 60 * 1000;
@@ -31,6 +33,8 @@ const TutorContent = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isFromCache, setIsFromCache] = useState(false);
   const [shouldGenerate, setShouldGenerate] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [showPulseEffect, setShowPulseEffect] = useState(false);
 
   // Only load content if topic changes AND shouldGenerate is true
   useEffect(() => {
@@ -48,6 +52,27 @@ const TutorContent = ({
     setIsFromCache(false);
     setShouldGenerate(false);
   }, [topicId]);
+
+  // Progress animation effect for loading
+  useEffect(() => {
+    if (isLoading) {
+      // Simulate progress
+      const interval = setInterval(() => {
+        setLoadingProgress(prev => {
+          // Move faster at beginning, slower as approaching 90%
+          const increment = prev < 30 ? 5 : prev < 60 ? 3 : prev < 80 ? 1 : 0.5;
+          const newProgress = Math.min(prev + increment, 90);
+          return newProgress;
+        });
+      }, 300);
+      
+      return () => {
+        clearInterval(interval);
+        // Reset progress when loading is done
+        setLoadingProgress(0);
+      };
+    }
+  }, [isLoading]);
 
   const loadContentForTopic = async () => {
     if (!topicId || !topicTitle) return;
@@ -132,6 +157,8 @@ const TutorContent = ({
   };
 
   const handleGenerateContent = () => {
+    setShowPulseEffect(true);
+    setTimeout(() => setShowPulseEffect(false), 800);
     setShouldGenerate(true);
   };
 
@@ -164,8 +191,12 @@ const TutorContent = ({
       <Separator />
       <CardContent className="p-0 flex-1 overflow-auto">
         {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="flex flex-col items-center justify-center h-64 p-6">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+            <p className="text-center text-muted-foreground mb-3">Generating tutorial content...</p>
+            <div className="w-full max-w-xs">
+              <Progress value={loadingProgress} className="h-2" />
+            </div>
           </div>
         ) : topicId && !content ? (
           <div className="text-center text-muted-foreground p-6 sm:p-12 flex flex-col items-center justify-center h-64">
@@ -173,9 +204,15 @@ const TutorContent = ({
             <p className="text-base sm:text-lg font-medium mb-4">{topicTitle}</p>
             <Button 
               onClick={handleGenerateContent} 
-              className="flex items-center gap-2"
+              className={cn(
+                "flex items-center gap-2 transition-all",
+                showPulseEffect && "animate-pulse bg-primary/80"
+              )}
             >
-              <Play className="h-4 w-4" />
+              <Play className={cn(
+                "h-4 w-4",
+                showPulseEffect && "animate-fadeInUp" 
+              )} />
               Generate Content
             </Button>
           </div>
