@@ -7,6 +7,7 @@ interface TopicsListProps {
   events: CalendarEvent[];
   expandedDescriptions: Record<string, boolean>;
   isUpdating: boolean;
+  loadingAction: string | null;
   onToggleDescription: (id: string) => void;
   onToggleComplete: (topicId: string, currentStatus: boolean) => Promise<void>;
   onEditClick: (topic: CalendarEvent) => void;
@@ -21,6 +22,7 @@ const TopicsList: React.FC<TopicsListProps> = ({
   events,
   expandedDescriptions,
   isUpdating,
+  loadingAction,
   onToggleDescription,
   onToggleComplete,
   onEditClick,
@@ -46,6 +48,7 @@ const TopicsList: React.FC<TopicsListProps> = ({
           event={event}
           isExpanded={!!expandedDescriptions[event.id]}
           isUpdating={isUpdating}
+          loadingAction={loadingAction}
           onToggleDescription={() => onToggleDescription(event.id)}
           onToggleComplete={() => onToggleComplete(event.id, event.completed)}
           onEdit={() => onEditClick(event)}

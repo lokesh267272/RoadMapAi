@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Edit, ArrowRight, Book, ChevronUp, ChevronDown, FileText, Brain, BookOpen } from "lucide-react";
+import { Edit, ArrowRight, Book, ChevronUp, ChevronDown, FileText, Brain, BookOpen, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { CalendarEvent } from "../types";
 import { getStatusColor } from "../utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TopicCardProps {
   event: CalendarEvent;
@@ -21,6 +22,7 @@ interface TopicCardProps {
   onResources: () => void;
   onFlashcards: () => void;
   onTutor: () => void;
+  loadingAction: string | null;
 }
 
 const TopicCard: React.FC<TopicCardProps> = ({
@@ -34,7 +36,8 @@ const TopicCard: React.FC<TopicCardProps> = ({
   onQuiz,
   onResources,
   onFlashcards,
-  onTutor
+  onTutor,
+  loadingAction
 }) => {
   const hasResources = event.resources && event.resources.length > 0;
   
@@ -99,60 +102,125 @@ const TopicCard: React.FC<TopicCardProps> = ({
       
       <div className="bg-background/10 border-t p-3">
         <div className="grid grid-cols-3 gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onEdit}
-            className="w-full text-xs"
-          >
-            <Edit className="mr-1 h-3 w-3" />
-            Edit
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onReschedule}
-            className="w-full text-xs"
-          >
-            <ArrowRight className="mr-1 h-3 w-3" />
-            Reschedule
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onResources}
-            className="w-full text-xs"
-          >
-            <FileText className="mr-1 h-3 w-3" />
-            Resources
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onQuiz}
-            className="w-full text-xs"
-          >
-            <Book className="mr-1 h-3 w-3" />
-            AI Quiz
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onFlashcards}
-            className="w-full text-xs"
-          >
-            <Brain className="mr-1 h-3 w-3" />
-            Flashcards
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onTutor}
-            className="w-full text-xs"
-          >
-            <BookOpen className="mr-1 h-3 w-3" />
-            AI Tutor
-          </Button>
+          <TooltipProvider>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onEdit}
+              className="w-full text-xs"
+              disabled={loadingAction !== null}
+            >
+              <Edit className="mr-1 h-3 w-3" />
+              Edit
+            </Button>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onReschedule}
+                  className="w-full text-xs"
+                  disabled={loadingAction !== null}
+                >
+                  <ArrowRight className="mr-1 h-3 w-3" />
+                  Reschedule
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Reschedule this topic to another day</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onResources}
+                  className="w-full text-xs"
+                  disabled={loadingAction !== null}
+                >
+                  <FileText className="mr-1 h-3 w-3" />
+                  Resources
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>View learning resources for this topic</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onQuiz}
+                  className="w-full text-xs"
+                  disabled={loadingAction === "quiz" || loadingAction !== null}
+                >
+                  {loadingAction === "quiz" ? (
+                    <>
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                      Preparing...
+                    </>
+                  ) : (
+                    <>
+                      <Book className="mr-1 h-3 w-3" />
+                      AI Quiz
+                    </>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Generate an AI quiz to test your knowledge</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onFlashcards}
+                  className="w-full text-xs"
+                  disabled={loadingAction === "flashcards" || loadingAction !== null}
+                >
+                  {loadingAction === "flashcards" ? (
+                    <>
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                      Preparing...
+                    </>
+                  ) : (
+                    <>
+                      <Brain className="mr-1 h-3 w-3" />
+                      Flashcards
+                    </>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Create and study flashcards for this topic</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onTutor}
+                  className="w-full text-xs"
+                  disabled={loadingAction === "tutor" || loadingAction !== null}
+                >
+                  {loadingAction === "tutor" ? (
+                    <>
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                      Preparing...
+                    </>
+                  ) : (
+                    <>
+                      <BookOpen className="mr-1 h-3 w-3" />
+                      AI Tutor
+                    </>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Get personalized tutoring on this topic</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
     </div>
