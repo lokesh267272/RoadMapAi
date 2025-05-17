@@ -11,14 +11,14 @@ import {
   DialogDescription 
 } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
 import EditTopicForm from "./dialogs/EditTopicForm";
 import RescheduleForm from "./dialogs/RescheduleForm";
 import TopicsList from "./dialogs/TopicsList";
 import ResourcesDialog from "./dialogs/ResourcesDialog";
 import FlashcardsDialog from "./dialogs/FlashcardsDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 interface TopicDialogProps {
   open: boolean;
@@ -77,7 +77,6 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
   const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
   const [generatedFlashcards, setGeneratedFlashcards] = useState<Flashcard[]>([]);
   const [savedFlashcards, setSavedFlashcards] = useState<Flashcard[]>([]);
-  const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
   const handleEditClick = (topic: CalendarEvent) => {
     setEditTopicId(topic.id);
@@ -93,15 +92,8 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
   };
 
   const handleQuizClick = (topic: CalendarEvent) => {
-    setLoadingAction("quiz");
-    toast.info("Preparing AI Quiz...");
-    
-    // Set a small timeout to show the loading state
-    setTimeout(() => {
-      setLoadingAction(null);
-      onOpenChange(false); // Close the dialog
-      navigate(`/quiz-generator?topic=${encodeURIComponent(topic.title)}&id=${topic.id}&roadmapId=${topic.roadmap_id}`);
-    }, 800);
+    onOpenChange(false); // Close the dialog
+    navigate(`/quiz-generator?topic=${encodeURIComponent(topic.title)}&id=${topic.id}&roadmapId=${topic.roadmap_id}`);
   };
 
   const handleResourcesClick = (topic: CalendarEvent) => {
@@ -115,29 +107,16 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
       return;
     }
     
-    setLoadingAction("flashcards");
     setSelectedTopic(topic);
+    setFlashcardsOpen(true);
     
     // Fetch existing flashcards for this topic
     await fetchSavedFlashcards(topic.id);
-    
-    // Show the dialog after a slight delay to ensure users see the loading state
-    setTimeout(() => {
-      setLoadingAction(null);
-      setFlashcardsOpen(true);
-    }, 600);
   };
 
   const handleTutorClick = (topic: CalendarEvent) => {
-    setLoadingAction("tutor");
-    toast.info("Preparing AI Tutor...");
-    
-    // Set a small timeout to show the loading state
-    setTimeout(() => {
-      setLoadingAction(null);
-      onOpenChange(false); // Close the dialog before navigating
-      navigate(`/ai-tutor/${topic.roadmap_id}?topicId=${topic.id}&title=${encodeURIComponent(topic.title)}`);
-    }, 800);
+    onOpenChange(false); // Close the dialog before navigating
+    navigate(`/ai-tutor/${topic.roadmap_id}?topicId=${topic.id}&title=${encodeURIComponent(topic.title)}`);
   };
 
   const fetchSavedFlashcards = async (topicId: string) => {
@@ -240,13 +219,6 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
     }
   };
 
-  // Reset loading action when dialog is closed
-  useEffect(() => {
-    if (!open) {
-      setLoadingAction(null);
-    }
-  }, [open]);
-
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -284,7 +256,6 @@ const TopicDialog: React.FC<TopicDialogProps> = ({
               events={selectedDateEvents}
               expandedDescriptions={expandedDescriptions}
               isUpdating={isUpdating}
-              loadingAction={loadingAction}
               onToggleDescription={toggleDescription}
               onToggleComplete={handleToggleComplete}
               onEditClick={handleEditClick}
