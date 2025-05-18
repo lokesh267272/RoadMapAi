@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -51,7 +52,17 @@ export default {
 				card: {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
-				}
+				},
+				// Custom colors based on your specifications
+				'deep-space': '#0D0D0D',
+				'midnight-indigo': '#20243B',
+				'galactic-purple': '#3C2A55',
+				'soft-white': '#F2F2F2',
+				'light-gray': '#CCCCCC',
+				'neon-blue': '#5AB0FF',
+				'electric-violet': '#9145B6',
+				'emerald-mint': '#A4F9C8',
+				'charcoal-gray': '#1A1A1A',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -101,6 +112,10 @@ export default {
 				'spin-slow': {
 					'0%': { transform: 'rotate(0deg)' },
 					'100%': { transform: 'rotate(360deg)' }
+				},
+				glow: {
+					'0%, 100%': { boxShadow: '0 0 5px rgba(164, 249, 200, 0.3)' },
+					'50%': { boxShadow: '0 0 20px rgba(164, 249, 200, 0.6)' }
 				}
 			},
 			animation: {
@@ -114,11 +129,18 @@ export default {
 				slideInLeft: 'slideInLeft 0.3s ease-out',
 				pulse: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
 				float: 'float 3s ease-in-out infinite',
-				'spin-slow': 'spin-slow 3s linear infinite'
+				'spin-slow': 'spin-slow 3s linear infinite',
+				glow: 'glow 2s ease-in-out infinite'
 			},
 			backdropBlur: {
 				xs: '2px',
-			}
+			},
+			boxShadow: {
+				'glow-sm': '0 0 5px rgba(164, 249, 200, 0.3)',
+				'glow-md': '0 0 15px rgba(164, 249, 200, 0.4)',
+				'glow-lg': '0 0 25px rgba(164, 249, 200, 0.5)',
+				'purple-glow': '0 0 15px rgba(145, 69, 182, 0.4)',
+			},
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
