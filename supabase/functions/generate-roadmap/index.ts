@@ -5,10 +5,30 @@ const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const MAX_CHUNK_SIZE = 30; // Maximum days to request in a single API call
 const MAX_ALLOWED_DAYS = 60; // Maximum allowed duration for roadmap generation
 
+// Updated CORS headers with specific allowed domains
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get("ENVIRONMENT") === "production" 
+    ? "https://studytheskill.com"
+    : "https://roadmapai.netlify.app",
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Max-Age': '86400'
 };
+
+// Helper function to check if the origin is allowed
+function getAllowedOrigin(requestOrigin: string | null): string {
+  if (!requestOrigin) return corsHeaders["Access-Control-Allow-Origin"];
+  
+  const allowedOrigins = [
+    "https://studytheskill.com", 
+    "https://preview--roadmapai.lovable.app", 
+    "https://roadmapai.netlify.app"
+  ];
+  
+  return allowedOrigins.includes(requestOrigin) 
+    ? requestOrigin 
+    : corsHeaders["Access-Control-Allow-Origin"];
+}
 
 // Type definitions
 interface Resource {
@@ -207,9 +227,16 @@ function validateRoadmapStructure(roadmap: Roadmap, requestedDuration: number, g
 }
 
 serve(async (req) => {
+  // Set dynamic origin based on request
+  const requestOrigin = req.headers.get("origin");
+  const dynamicCorsHeaders = {
+    ...corsHeaders,
+    "Access-Control-Allow-Origin": getAllowedOrigin(requestOrigin)
+  };
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: dynamicCorsHeaders });
   }
 
   try {
@@ -445,7 +472,7 @@ Important:
     finalRoadmap = validateRoadmapStructure(finalRoadmap, requestedDuration, goal);
 
     return new Response(JSON.stringify({ roadmap: finalRoadmap }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error("Error in generate-roadmap function:", error);
@@ -466,7 +493,7 @@ Important:
       roadmap: fallbackRoadmap
     }), {
       status: 200, // Return 200 even on error, but include the error message
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });

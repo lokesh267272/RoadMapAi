@@ -3,3 +3,7 @@ project_id = "wxmkwxulnbcoidpfmicw"
 
 [functions.generate-flashcards]
 verify_jwt = true
+
+[functions]
+[functions.environment]
+ENVIRONMENT = "development"

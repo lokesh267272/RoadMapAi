@@ -4,15 +4,42 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 
+// Updated CORS headers with specific allowed domains
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get("ENVIRONMENT") === "production" 
+    ? "https://studytheskill.com"
+    : "https://roadmapai.netlify.app",
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Max-Age': '86400'
 };
 
+// Helper function to check if the origin is allowed
+function getAllowedOrigin(requestOrigin: string | null): string {
+  if (!requestOrigin) return corsHeaders["Access-Control-Allow-Origin"];
+  
+  const allowedOrigins = [
+    "https://studytheskill.com", 
+    "https://preview--roadmapai.lovable.app", 
+    "https://roadmapai.netlify.app"
+  ];
+  
+  return allowedOrigins.includes(requestOrigin) 
+    ? requestOrigin 
+    : corsHeaders["Access-Control-Allow-Origin"];
+}
+
 serve(async (req) => {
+  // Set dynamic origin based on request
+  const requestOrigin = req.headers.get("origin");
+  const dynamicCorsHeaders = {
+    ...corsHeaders,
+    "Access-Control-Allow-Origin": getAllowedOrigin(requestOrigin)
+  };
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: dynamicCorsHeaders });
   }
 
   try {
@@ -116,7 +143,7 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ quiz: quizData }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error("Error in generate-quiz function:", error);
@@ -124,7 +151,7 @@ serve(async (req) => {
       JSON.stringify({ error: error.message || "Failed to generate quiz" }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }

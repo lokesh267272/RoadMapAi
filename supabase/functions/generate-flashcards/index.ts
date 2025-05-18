@@ -1,18 +1,44 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
+// Updated CORS headers with specific allowed domains
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": Deno.env.get("ENVIRONMENT") === "production" 
+    ? "https://studytheskill.com"
+    : "https://roadmapai.netlify.app",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Max-Age": "86400"
 };
 
+// Helper function to check if the origin is allowed
+function getAllowedOrigin(requestOrigin: string | null): string {
+  if (!requestOrigin) return corsHeaders["Access-Control-Allow-Origin"];
+  
+  const allowedOrigins = [
+    "https://studytheskill.com", 
+    "https://preview--roadmapai.lovable.app", 
+    "https://roadmapai.netlify.app"
+  ];
+  
+  return allowedOrigins.includes(requestOrigin) 
+    ? requestOrigin 
+    : corsHeaders["Access-Control-Allow-Origin"];
+}
+
 serve(async (req) => {
+  // Set dynamic origin based on request
+  const requestOrigin = req.headers.get("origin");
+  const dynamicCorsHeaders = {
+    ...corsHeaders,
+    "Access-Control-Allow-Origin": getAllowedOrigin(requestOrigin)
+  };
+
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: dynamicCorsHeaders });
   }
 
   try {
@@ -21,7 +47,7 @@ serve(async (req) => {
     if (!topic) {
       return new Response(
         JSON.stringify({ error: "Topic is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -38,7 +64,7 @@ serve(async (req) => {
             { term: "Sample Term 5", definition: "Sample Definition 5" }
           ]
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -123,19 +149,19 @@ Avoid markdown, do not add extra text. The flashcards should be beginner-friendl
       console.error("Error parsing flashcards:", error);
       return new Response(
         JSON.stringify({ error: "Failed to parse flashcards from API response" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(
       JSON.stringify(flashcardsData),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error in generate-flashcards function:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Failed to generate flashcards" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
