@@ -4,122 +4,81 @@
 
 @layer base {
   :root {
-    /* We'll keep the light theme values but will override with dark theme globally */
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --background: 210 20% 98%;
+    --foreground: 220 20% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 220 20% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    --popover-foreground: 220 20% 10%;
 
-    --primary: 210 100% 66%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 280 60% 52%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 215 25% 96%;
+    --secondary-foreground: 220 20% 10%;
 
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 5% 65%;
+    --muted: 215 25% 96%;
+    --muted-foreground: 220 10% 46%;
 
-    --accent: 160 85% 80%;
-    --accent-foreground: 240 10% 3.9%;
+    --accent: 221 83% 92%;
+    --accent-foreground: 221 83% 35%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 210 100% 66%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 221 83% 53%;
 
     --radius: 0.75rem;
     
     /* Adding sidebar colors */
-    --sidebar: 0 0% 100%;
-    --sidebar-foreground: 240 10% 3.9%;
-    --sidebar-border: 240 6% 90%;
-    --sidebar-accent: 240 5% 96%;
-    --sidebar-accent-foreground: 240 10% 3.9%;
-    --sidebar-ring: 210 100% 66%;
-  }
-  
-  /* Since we want a dark theme by default, we'll use these settings for the base */
-  body {
-    --background: 0 0% 5%;
-    --foreground: 0 0% 95%;
-
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 95%;
-
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 95%;
-
-    --primary: 210 100% 66%;
-    --primary-foreground: 0 0% 5%;
-
-    --secondary: 280 60% 52%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 240 5% 15%;
-    --muted-foreground: 240 5% 75%;
-
-    --accent: 160 85% 80%;
-    --accent-foreground: 0 0% 10%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 240 6% 15%;
-    --input: 240 6% 15%;
-    --ring: 210 100% 66%;
-    
-    /* Adding sidebar colors for dark mode */
-    --sidebar: 0 0% 10%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-border: 240 6% 15%;
-    --sidebar-accent: 240 5% 15%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-ring: 210 100% 66%;
+    --sidebar: 210 20% 98%;
+    --sidebar-foreground: 220 20% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-accent: 215 25% 96%;
+    --sidebar-accent-foreground: 220 20% 10%;
+    --sidebar-ring: 221 83% 53%;
   }
 
   .dark {
-    /* This is already dark mode, so we'll just duplicate the values */
-    --background: 0 0% 5%;
-    --foreground: 0 0% 95%;
+    --background: 220 30% 10%;
+    --foreground: 220 20% 98%;
 
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 95%;
+    --card: 220 30% 13%;
+    --card-foreground: 220 20% 98%;
 
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 220 30% 13%;
+    --popover-foreground: 220 20% 98%;
 
-    --primary: 210 100% 66%;
-    --primary-foreground: 0 0% 5%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 280 60% 52%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 220 30% 16%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 240 5% 15%;
-    --muted-foreground: 240 5% 75%;
+    --muted: 220 30% 16%;
+    --muted-foreground: 215 20% 75%;
 
-    --accent: 160 85% 80%;
-    --accent-foreground: 0 0% 10%;
+    --accent: 221 83% 33%;
+    --accent-foreground: 220 20% 98%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 240 6% 15%;
-    --input: 240 6% 15%;
-    --ring: 210 100% 66%;
+    --border: 220 30% 20%;
+    --input: 220 30% 20%;
+    --ring: 221 83% 53%;
     
     /* Adding sidebar colors for dark mode */
-    --sidebar: 0 0% 10%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-border: 240 6% 15%;
-    --sidebar-accent: 240 5% 15%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-ring: 210 100% 66%;
+    --sidebar: 220 30% 13%;
+    --sidebar-foreground: 220 20% 98%;
+    --sidebar-border: 220 30% 20%;
+    --sidebar-accent: 220 30% 16%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-ring: 221 83% 53%;
   }
 }
 
@@ -133,13 +92,8 @@
   }
   
   body {
-    @apply bg-gradient-to-b from-deep-space to-midnight-indigo text-light-gray transition-colors duration-300 overflow-x-hidden;
+    @apply bg-background text-foreground transition-colors duration-300 overflow-x-hidden;
     font-feature-settings: "rlig" 1, "calt" 1;
-    min-height: 100vh;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    @apply text-soft-white font-semibold;
   }
 
   ::-webkit-scrollbar {
@@ -147,25 +101,25 @@
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-charcoal-gray rounded-full;
+    @apply bg-secondary rounded-full;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-galactic-purple/70 rounded-full hover:bg-galactic-purple transition-colors;
+    @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50 transition-colors;
   }
 }
 
 @layer utilities {
   .text-shadow {
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   }
   
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-neon-blue to-electric-violet;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent-foreground;
   }
   
   .bg-glass {
-    @apply bg-charcoal-gray/80 backdrop-blur-lg border border-galactic-purple/20;
+    @apply bg-white/80 dark:bg-black/50 backdrop-blur-lg border border-white/20 dark:border-white/10;
   }
   
   .animate-in {
@@ -173,7 +127,7 @@
   }
   
   .card-hover {
-    @apply transition-all duration-300 hover:shadow-glow-md hover:-translate-y-1;
+    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
   }
 
   .perspective {
@@ -199,20 +153,6 @@
   
   .full-height-mobile {
     height: calc(100vh - 4rem - env(safe-area-inset-bottom, 0));
-  }
-  
-  /* Button styles */
-  .btn-primary {
-    @apply bg-neon-blue text-deep-space font-semibold px-4 py-2 rounded-lg shadow-md hover:bg-emerald-mint transition-colors duration-300;
-  }
-  
-  .btn-secondary {
-    @apply bg-electric-violet text-soft-white px-4 py-2 rounded-lg shadow-md hover:brightness-110 transition-all duration-300;
-  }
-  
-  /* Card styles */
-  .card-dark {
-    @apply bg-charcoal-gray text-light-gray rounded-2xl p-6 shadow-md hover:shadow-emerald-mint/30 transition-all duration-300;
   }
 }
 
