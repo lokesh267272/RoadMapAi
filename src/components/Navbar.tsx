@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Brain, Calendar, Menu, Target, X, User, LogOut } from "lucide-react";
+import { Brain, Calendar, Menu, Target, X, User, LogOut, MessageSquare } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -86,6 +86,15 @@ const Navbar = () => {
           >
             Progress
           </Link>
+          <Link 
+            to="/ai-tutor" 
+            className={`text-foreground/80 hover:text-foreground transition-colors ${
+              location.pathname.startsWith("/ai-tutor") ? "font-medium text-foreground" : ""
+            }`}
+          >
+            <MessageSquare className="h-4 w-4 mr-1 inline" />
+            AI Tutor
+          </Link>
           {user ? (
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" asChild>
@@ -151,6 +160,14 @@ const Navbar = () => {
             >
               <Target className="h-4 w-4" />
               Progress
+            </Link>
+            <Link
+              to="/ai-tutor"
+              className="py-2 text-foreground/80 hover:text-foreground transition-colors flex items-center gap-2"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <MessageSquare className="h-4 w-4" />
+              AI Tutor
             </Link>
             {user ? (
               <>

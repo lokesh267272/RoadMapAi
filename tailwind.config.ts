@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -98,6 +97,10 @@ export default {
 				float: {
 					'0%, 100%': { transform: 'translateY(0)' },
 					'50%': { transform: 'translateY(-10px)' }
+				},
+				'spin-slow': {
+					'0%': { transform: 'rotate(0deg)' },
+					'100%': { transform: 'rotate(360deg)' }
 				}
 			},
 			animation: {
@@ -110,7 +113,8 @@ export default {
 				slideInRight: 'slideInRight 0.3s ease-out',
 				slideInLeft: 'slideInLeft 0.3s ease-out',
 				pulse: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-				float: 'float 3s ease-in-out infinite'
+				float: 'float 3s ease-in-out infinite',
+				'spin-slow': 'spin-slow 3s linear infinite'
 			},
 			backdropBlur: {
 				xs: '2px',

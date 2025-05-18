@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { ArrowRight, Brain, Calendar, CheckCircle, BookOpen, Target, BarChart, Sparkles, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import DemoTutorial from "./DemoTutorial";
 
 const Hero = () => {
+  const [isDemoOpen, setIsDemoOpen] = useState(false);
+
   return (
     <div className="container mx-auto px-4 pt-32 pb-16 md:pt-40 md:pb-24">
       <div className="max-w-4xl mx-auto text-center animate-fadeInUp">
@@ -25,15 +29,17 @@ const Hero = () => {
               Get Started <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
-          <Button asChild variant="outline" size="lg">
-            <Link to="/dashboard">
-              View Demo
-            </Link>
+          <Button 
+            variant="outline" 
+            size="lg"
+            onClick={() => setIsDemoOpen(true)}
+          >
+            View Demo
           </Button>
         </div>
         
         {/* Feature highlights */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-glass rounded-xl p-6 flex flex-col items-center text-center card-hover">
             <div className="bg-primary/10 p-3 rounded-lg mb-4">
               <Brain className="h-6 w-6 text-primary" />
@@ -129,6 +135,12 @@ const Hero = () => {
           </div>
         </div>
       </div>
+
+      {/* Demo Tutorial Dialog */}
+      <DemoTutorial 
+        isOpen={isDemoOpen} 
+        onClose={() => setIsDemoOpen(false)} 
+      />
     </div>
   );
 };

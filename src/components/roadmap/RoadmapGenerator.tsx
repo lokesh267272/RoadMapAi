@@ -41,7 +41,7 @@ const RoadmapGenerator = () => {
 
   return (
     <div className="max-w-3xl mx-auto animate-fadeInUp">
-      <LoadingAnimation isLoading={isLoading} />
+      <LoadingAnimation isLoading={isLoading} progress={generationProgress} />
       <Card className="bg-glass shadow-lg border-2">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center">
