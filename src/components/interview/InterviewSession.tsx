@@ -13,6 +13,14 @@ interface InterviewSessionProps {
   onComplete: () => void;
 }
 
+interface ConversationMessage {
+  type: 'ai' | 'user' | 'feedback';
+  content: string | any;
+  timestamp: Date;
+  score?: number;
+  improvedAnswer?: string;
+}
+
 const InterviewSession = ({ sessionData, onComplete }: InterviewSessionProps) => {
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -21,7 +29,7 @@ const InterviewSession = ({ sessionData, onComplete }: InterviewSessionProps) =>
   const [currentQuestionId, setCurrentQuestionId] = useState(sessionData.questionId);
   const [feedback, setFeedback] = useState(null);
   const [isComplete, setIsComplete] = useState(false);
-  const [conversationHistory, setConversationHistory] = useState([
+  const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([
     {
       type: 'ai',
       content: sessionData.greeting,
@@ -75,7 +83,7 @@ const InterviewSession = ({ sessionData, onComplete }: InterviewSessionProps) =>
     setIsProcessing(true);
     
     // Add user response to conversation
-    const userMessage = {
+    const userMessage: ConversationMessage = {
       type: 'user',
       content: currentAnswer,
       timestamp: new Date()
@@ -96,7 +104,7 @@ const InterviewSession = ({ sessionData, onComplete }: InterviewSessionProps) =>
       setFeedback(data.feedback);
       
       // Add feedback to conversation
-      const feedbackMessage = {
+      const feedbackMessage: ConversationMessage = {
         type: 'feedback',
         content: data.feedback,
         improvedAnswer: data.improvedAnswer,
@@ -113,7 +121,7 @@ const InterviewSession = ({ sessionData, onComplete }: InterviewSessionProps) =>
         setCurrentQuestionId(data.nextQuestion.id);
         
         // Add next question to conversation
-        const nextQuestionMessage = {
+        const nextQuestionMessage: ConversationMessage = {
           type: 'ai',
           content: data.nextQuestion.text,
           timestamp: new Date()
@@ -176,7 +184,7 @@ const InterviewSession = ({ sessionData, onComplete }: InterviewSessionProps) =>
                           <div>
                             <strong>Strengths:</strong>
                             <ul className="list-disc list-inside text-sm">
-                              {message.content.strengths?.map((strength, i) => (
+                              {message.content.strengths?.map((strength: string, i: number) => (
                                 <li key={i}>{strength}</li>
                               ))}
                             </ul>
@@ -184,7 +192,7 @@ const InterviewSession = ({ sessionData, onComplete }: InterviewSessionProps) =>
                           <div>
                             <strong>Improvements:</strong>
                             <ul className="list-disc list-inside text-sm">
-                              {message.content.improvements?.map((improvement, i) => (
+                              {message.content.improvements?.map((improvement: string, i: number) => (
                                 <li key={i}>{improvement}</li>
                               ))}
                             </ul>

@@ -48,13 +48,13 @@ Focus areas: ${sessionData.focusAreas?.join(', ') || 'General interview skills'}
 
 Start the interview with a warm, professional greeting. Then ask your first relevant question based on the role and experience level. Keep questions realistic and job-relevant.
 
-Respond in JSON format:
+Respond in valid JSON format only (no markdown or code blocks):
 {
   "greeting": "Your professional greeting",
   "question": "Your first interview question",
-  "questionType": "technical|behavioral|situational",
+  "questionType": "technical",
   "questionCategory": "relevant category",
-  "difficulty": "easy|medium|hard"
+  "difficulty": "medium"
 }`
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`, {
@@ -70,7 +70,16 @@ Respond in JSON format:
       })
 
       const geminiData = await response.json()
-      const aiResponse = JSON.parse(geminiData.candidates[0].content.parts[0].text)
+      console.log('Gemini raw response:', geminiData)
+      
+      let aiResponseText = geminiData.candidates[0].content.parts[0].text
+      
+      // Clean up the response text by removing markdown code blocks if present
+      aiResponseText = aiResponseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      
+      console.log('Cleaned AI response:', aiResponseText)
+      
+      const aiResponse = JSON.parse(aiResponseText)
 
       // Store the first question
       const { data: question } = await supabase
@@ -118,7 +127,7 @@ Interview Context:
 - Type: ${session.interview_type}
 - Experience Level: ${session.experience_level}
 
-Provide detailed feedback in JSON format:
+Provide detailed feedback in valid JSON format only (no markdown or code blocks):
 {
   "score": 4.2,
   "feedback": {
@@ -137,7 +146,7 @@ Provide detailed feedback in JSON format:
   },
   "improvedAnswer": "Here's how you could enhance your response: [provide specific improved version]",
   "nextQuestion": "Your next relevant interview question",
-  "nextQuestionType": "technical|behavioral|situational",
+  "nextQuestionType": "behavioral",
   "nextQuestionCategory": "relevant category"
 }`
 
@@ -154,7 +163,12 @@ Provide detailed feedback in JSON format:
       })
 
       const geminiData = await response.json()
-      const analysis = JSON.parse(geminiData.candidates[0].content.parts[0].text)
+      let analysisText = geminiData.candidates[0].content.parts[0].text
+      
+      // Clean up the response text
+      analysisText = analysisText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      
+      const analysis = JSON.parse(analysisText)
 
       // Store the user's response and feedback
       await supabase
