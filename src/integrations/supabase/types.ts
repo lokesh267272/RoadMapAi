@@ -50,6 +50,176 @@ export type Database = {
           },
         ]
       }
+      interview_questions: {
+        Row: {
+          asked_at: string | null
+          created_at: string
+          difficulty_level: string | null
+          expected_answer_points: string[] | null
+          id: string
+          question_category: string | null
+          question_index: number
+          question_text: string
+          question_type: string
+          session_id: string
+        }
+        Insert: {
+          asked_at?: string | null
+          created_at?: string
+          difficulty_level?: string | null
+          expected_answer_points?: string[] | null
+          id?: string
+          question_category?: string | null
+          question_index: number
+          question_text: string
+          question_type: string
+          session_id: string
+        }
+        Update: {
+          asked_at?: string | null
+          created_at?: string
+          difficulty_level?: string | null
+          expected_answer_points?: string[] | null
+          id?: string
+          question_category?: string | null
+          question_index?: number
+          question_text?: string
+          question_type?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_questions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "interview_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_responses: {
+        Row: {
+          audio_duration: number | null
+          communication_metrics: Json | null
+          content_analysis: Json | null
+          created_at: string
+          feedback: Json
+          id: string
+          improvement_suggestions: string[] | null
+          positive_points: string[] | null
+          question_id: string
+          responded_at: string
+          response_score: number | null
+          session_id: string
+          user_response: string | null
+        }
+        Insert: {
+          audio_duration?: number | null
+          communication_metrics?: Json | null
+          content_analysis?: Json | null
+          created_at?: string
+          feedback: Json
+          id?: string
+          improvement_suggestions?: string[] | null
+          positive_points?: string[] | null
+          question_id: string
+          responded_at?: string
+          response_score?: number | null
+          session_id: string
+          user_response?: string | null
+        }
+        Update: {
+          audio_duration?: number | null
+          communication_metrics?: Json | null
+          content_analysis?: Json | null
+          created_at?: string
+          feedback?: Json
+          id?: string
+          improvement_suggestions?: string[] | null
+          positive_points?: string[] | null
+          question_id?: string
+          responded_at?: string
+          response_score?: number | null
+          session_id?: string
+          user_response?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "interview_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "interview_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_sessions: {
+        Row: {
+          audio_session_id: string | null
+          company_focus: string | null
+          completed_at: string | null
+          created_at: string
+          current_question_index: number | null
+          experience_level: string
+          focus_areas: string[] | null
+          id: string
+          interview_type: string
+          overall_score: number | null
+          session_feedback: Json | null
+          started_at: string
+          status: string
+          target_role: string
+          total_questions: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audio_session_id?: string | null
+          company_focus?: string | null
+          completed_at?: string | null
+          created_at?: string
+          current_question_index?: number | null
+          experience_level: string
+          focus_areas?: string[] | null
+          id?: string
+          interview_type: string
+          overall_score?: number | null
+          session_feedback?: Json | null
+          started_at?: string
+          status?: string
+          target_role: string
+          total_questions?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audio_session_id?: string | null
+          company_focus?: string | null
+          completed_at?: string | null
+          created_at?: string
+          current_question_index?: number | null
+          experience_level?: string
+          focus_areas?: string[] | null
+          id?: string
+          interview_type?: string
+          overall_score?: number | null
+          session_feedback?: Json | null
+          started_at?: string
+          status?: string
+          target_role?: string
+          total_questions?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       learning_roadmaps: {
         Row: {
           created_at: string
