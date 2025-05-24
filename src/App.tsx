@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Provider as TooltipProvider } from "@radix-ui/react-tooltip";
@@ -17,6 +18,7 @@ const FlowchartView = lazy(() => import("./pages/FlowchartView"));
 const QuizGenerator = lazy(() => import("./pages/QuizGenerator"));
 const AiTutor = lazy(() => import("./pages/AiTutor"));
 const AiTutorSelection = lazy(() => import("./pages/AiTutorSelection"));
+const AiVoiceAgent = lazy(() => import("./pages/AiVoiceAgent"));
 
 const queryClient = new QueryClient();
 
@@ -59,6 +61,11 @@ const App = () => (
                 <Route path="ai-tutor/:roadmapId" element={
                   <ProtectedRoute>
                     <AiTutor />
+                  </ProtectedRoute>
+                } />
+                <Route path="ai-voice-agent" element={
+                  <ProtectedRoute>
+                    <AiVoiceAgent />
                   </ProtectedRoute>
                 } />
                 <Route path="*" element={<NotFound />} />

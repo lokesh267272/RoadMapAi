@@ -4,6 +4,9 @@ project_id = "wxmkwxulnbcoidpfmicw"
 [functions.generate-flashcards]
 verify_jwt = true
 
+[functions.voice-agent-realtime]
+verify_jwt = false
+
 [functions]
 [functions.environment]
 ENVIRONMENT = "development"
