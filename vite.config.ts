@@ -1,4 +1,3 @@
-
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -20,16 +19,4 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  optimizeDeps: {
-    include: ['three']
-  },
-  build: {
-    commonjsOptions: {
-      include: [/node_modules/]
-    },
-    rollupOptions: {
-      // Make sure three is properly handled as an external dependency
-      external: [],
-    }
-  }
 }));

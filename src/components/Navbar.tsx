@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Brain, Calendar, Menu, Target, X, User, LogOut, MessageSquare, Mic } from "lucide-react";
+import { Brain, Calendar, Menu, Target, X, User, LogOut, MessageSquare } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -96,15 +95,6 @@ const Navbar = () => {
             <MessageSquare className="h-4 w-4 mr-1 inline" />
             AI Tutor
           </Link>
-          <Link 
-            to="/ai-voice-agent" 
-            className={`text-foreground/80 hover:text-foreground transition-colors ${
-              location.pathname === "/ai-voice-agent" ? "font-medium text-foreground" : ""
-            }`}
-          >
-            <Mic className="h-4 w-4 mr-1 inline" />
-            Voice Agent
-          </Link>
           {user ? (
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" asChild>
@@ -178,14 +168,6 @@ const Navbar = () => {
             >
               <MessageSquare className="h-4 w-4" />
               AI Tutor
-            </Link>
-            <Link
-              to="/ai-voice-agent"
-              className="py-2 text-foreground/80 hover:text-foreground transition-colors flex items-center gap-2"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              <Mic className="h-4 w-4" />
-              Voice Agent
             </Link>
             {user ? (
               <>
