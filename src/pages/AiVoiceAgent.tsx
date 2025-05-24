@@ -2,75 +2,19 @@
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mic, Square, RefreshCw, Headphones, Volume2 } from "lucide-react";
+import { Mic, Square, RefreshCw, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 
-// Utility function for creating a blob from PCM data
-const createBlob = (pcmData: Float32Array) => {
-  const int16Array = new Int16Array(pcmData.length);
-  
-  // Convert Float32Array (-1.0 to 1.0) to Int16Array (-32768 to 32767)
-  for (let i = 0; i < pcmData.length; i++) {
-    const s = Math.max(-1, Math.min(1, pcmData[i]));
-    int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-  }
-  
-  // Create a new Blob with the Int16Array data
-  return new Blob([int16Array.buffer], { type: 'audio/pcm;rate=16000' });
-};
+// Define AudioContext type to handle cross-browser compatibility
+type AudioContextType = typeof AudioContext;
 
-// Utility function for decoding base64 audio data
-const decode = (base64: string): Uint8Array => {
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
-};
-
-// Utility function for decoding audio data
-const decodeAudioData = async (
-  data: Uint8Array,
-  audioContext: AudioContext,
-  sampleRate: number,
-  numChannels: number
-): Promise<AudioBuffer> => {
-  return new Promise((resolve, reject) => {
-    audioContext.decodeAudioData(
-      data.buffer,
-      (buffer) => resolve(buffer),
-      (error) => reject(error)
-    );
-  });
-};
-
-// Audio analyzer class for visualizations
-class Analyser {
-  analyser: AnalyserNode;
-  data: Uint8Array;
-
-  constructor(audioNode: AudioNode) {
-    // Creating the analyzer context
-    const audioContext = audioNode.context;
-    this.analyser = audioContext.createAnalyser();
-    this.analyser.fftSize = 32;
-    audioNode.connect(this.analyser);
-    
-    // Create data array for frequency data
-    this.data = new Uint8Array(this.analyser.frequencyBinCount);
-  }
-
-  update() {
-    // Get frequency data
-    this.analyser.getByteFrequencyData(this.data);
-  }
-}
+// Safe access to AudioContext constructor, with fallback for older browsers
+const AudioContextClass: AudioContextType = 
+  window.AudioContext || 
+  (window as any).webkitAudioContext;
 
 const AiVoiceAgent = () => {
-  const { user } = useAuth();
   const [isRecording, setIsRecording] = useState(false);
   const [status, setStatus] = useState("Ready to start");
   const [error, setError] = useState("");
@@ -94,19 +38,15 @@ const AiVoiceAgent = () => {
   // Canvas and visualization references
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
-  
-  // Analyzer references for visualizations
-  const inputAnalyserRef = useRef<Analyser>();
-  const outputAnalyserRef = useRef<Analyser>();
 
   // Initialize audio contexts and setup
   useEffect(() => {
     // Initialize audio contexts
     try {
-      inputAudioContextRef.current = new (window.AudioContext || window.webkitAudioContext)({
+      inputAudioContextRef.current = new AudioContextClass({
         sampleRate: 16000
       });
-      outputAudioContextRef.current = new (window.AudioContext || window.webkitAudioContext)({
+      outputAudioContextRef.current = new AudioContextClass({
         sampleRate: 24000
       });
       
@@ -119,10 +59,6 @@ const AiVoiceAgent = () => {
       
       // Initialize next start time
       nextStartTimeRef.current = outputAudioContextRef.current.currentTime;
-      
-      // Create analyzers
-      inputAnalyserRef.current = new Analyser(inputNodeRef.current);
-      outputAnalyserRef.current = new Analyser(outputNodeRef.current);
       
       // Start visualization
       startVisualization();
@@ -145,6 +81,46 @@ const AiVoiceAgent = () => {
     };
   }, []);
 
+  // Utility function for creating a blob from PCM data
+  const createBlob = (pcmData: Float32Array) => {
+    const int16Array = new Int16Array(pcmData.length);
+    
+    // Convert Float32Array (-1.0 to 1.0) to Int16Array (-32768 to 32767)
+    for (let i = 0; i < pcmData.length; i++) {
+      const s = Math.max(-1, Math.min(1, pcmData[i]));
+      int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    }
+    
+    // Create a new Blob with the Int16Array data
+    return new Blob([int16Array.buffer], { type: 'audio/pcm;rate=16000' });
+  };
+
+  // Utility function for decoding base64 audio data
+  const decode = (base64: string): Uint8Array => {
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
+  };
+
+  // Utility function for decoding audio data
+  const decodeAudioData = async (
+    data: Uint8Array,
+    audioContext: AudioContext,
+    sampleRate: number,
+    numChannels: number
+  ): Promise<AudioBuffer> => {
+    return new Promise((resolve, reject) => {
+      audioContext.decodeAudioData(
+        data.buffer,
+        (buffer) => resolve(buffer),
+        (error) => reject(error)
+      );
+    });
+  };
+
   const startVisualization = () => {
     if (!canvasRef.current) return;
     
@@ -165,11 +141,7 @@ const AiVoiceAgent = () => {
     const animate = () => {
       animationFrameRef.current = requestAnimationFrame(animate);
       
-      if (!ctx || !inputAnalyserRef.current || !outputAnalyserRef.current) return;
-      
-      // Update analyzers
-      inputAnalyserRef.current.update();
-      outputAnalyserRef.current.update();
+      if (!ctx) return;
       
       // Clear canvas
       ctx.fillStyle = 'rgba(10, 10, 30, 0.2)';
@@ -187,31 +159,12 @@ const AiVoiceAgent = () => {
       ctx.strokeStyle = '#5AB0FF'; // Neon blue
       ctx.lineWidth = 3;
       
-      for (let i = 0; i < inputAnalyserRef.current.data.length; i++) {
-        const amplitude = inputAnalyserRef.current.data[i] / 255;
-        const angle = (i / inputAnalyserRef.current.data.length) * Math.PI * 2;
+      for (let i = 0; i < 32; i++) {
+        // Simplified visualization without audio analysis
+        const amplitude = isRecording ? (Math.sin(Date.now() / 200 + i * 0.2) + 1) * 0.5 : 0.1;
+        const angle = (i / 32) * Math.PI * 2;
         const x = centerX + Math.cos(angle) * (radius + amplitude * 100);
         const y = centerY + Math.sin(angle) * (radius + amplitude * 100);
-        
-        if (i === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-      }
-      ctx.closePath();
-      ctx.stroke();
-      
-      // Draw output audio visualization (inner circle)
-      ctx.beginPath();
-      ctx.strokeStyle = '#A4F9C8'; // Emerald mint
-      ctx.lineWidth = 3;
-      
-      for (let i = 0; i < outputAnalyserRef.current.data.length; i++) {
-        const amplitude = outputAnalyserRef.current.data[i] / 255;
-        const angle = (i / outputAnalyserRef.current.data.length) * Math.PI * 2;
-        const x = centerX + Math.cos(angle) * (radius - 50 + amplitude * 50);
-        const y = centerY + Math.sin(angle) * (radius - 50 + amplitude * 50);
         
         if (i === 0) {
           ctx.moveTo(x, y);
@@ -247,19 +200,6 @@ const AiVoiceAgent = () => {
       wsRef.current.onopen = () => {
         setStatus("Connected to voice agent");
         console.log("WebSocket connection established");
-        
-        // Send initial session configuration after connection
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          wsRef.current.send(JSON.stringify({
-            type: 'session.config',
-            config: {
-              modalities: ["text", "audio"],
-              input_audio_format: "pcm16",
-              output_audio_format: "pcm16",
-              voice: "alloy"
-            }
-          }));
-        }
       };
       
       wsRef.current.onmessage = async (event) => {
@@ -269,6 +209,29 @@ const AiVoiceAgent = () => {
           
           if (message.type === 'session.created') {
             setStatus("Session created. Ready to start");
+            
+            // Send session configuration after session is created
+            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+              wsRef.current.send(JSON.stringify({
+                type: 'session.update',
+                session: {
+                  modalities: ["text", "audio"],
+                  instructions: "You are a helpful AI assistant having a voice conversation. Your knowledge cutoff is 2023.",
+                  voice: "alloy",
+                  input_audio_format: "pcm16",
+                  output_audio_format: "pcm16",
+                  input_audio_transcription: {
+                    model: "whisper-1"
+                  },
+                  turn_detection: {
+                    type: "server_vad",
+                    threshold: 0.5,
+                    prefix_padding_ms: 300,
+                    silence_duration_ms: 1000
+                  }
+                }
+              }));
+            }
           } 
           else if (message.type === 'response.audio.delta') {
             // Process incoming audio data
