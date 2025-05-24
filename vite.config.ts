@@ -26,6 +26,10 @@ export default defineConfig(({ mode }) => ({
   build: {
     commonjsOptions: {
       include: [/node_modules/]
+    },
+    rollupOptions: {
+      // Make sure three is properly handled as an external dependency
+      external: [],
     }
   }
 }));
