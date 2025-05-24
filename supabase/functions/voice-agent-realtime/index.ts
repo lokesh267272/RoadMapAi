@@ -4,7 +4,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
-const GEMINI_URL = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01";
+
+// Define the endpoint for Google's Gemini 2.5 Flash Preview Native Audio Dialog model
+const GEMINI_ENDPOINT = "wss://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-native-audio-dialog:streamGenerateContent?key=";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -26,15 +28,22 @@ serve(async (req) => {
       
       // Connect to Gemini API
       try {
-        geminiSocket = new WebSocket(GEMINI_URL);
+        // Connect to Gemini endpoint with API key
+        geminiSocket = new WebSocket(`${GEMINI_ENDPOINT}${GEMINI_API_KEY}`);
         
         geminiSocket.onopen = () => {
           console.log("Connected to Gemini API");
           
-          // Send initial session.create message to Gemini
+          // Send initial session configuration to Gemini
           geminiSocket.send(JSON.stringify({
             type: "session.create",
-            name: "voice_agent_session"
+            config: {
+              responseModalities: ["AUDIO"],
+              speechConfig: {
+                voiceConfig: { prebuiltVoiceConfig: { voiceName: "Alloy" } },
+                languageCode: "en-US"
+              }
+            }
           }));
         };
         
@@ -43,31 +52,6 @@ serve(async (req) => {
           try {
             console.log(`Received message from Gemini API: ${event.data.slice(0, 100)}...`);
             clientSocket.send(event.data);
-            
-            // If we receive a session.created event, send session.update
-            const data = JSON.parse(event.data);
-            if (data.type === "session.created") {
-              console.log("Session created, sending configuration");
-              geminiSocket?.send(JSON.stringify({
-                type: "session.update",
-                session: {
-                  modalities: ["text", "audio"],
-                  instructions: "You are a helpful assistant that responds to user queries in a conversational manner. Your knowledge cutoff is 2023-10.",
-                  voice: "alloy",
-                  input_audio_format: "pcm16",
-                  output_audio_format: "pcm16",
-                  input_audio_transcription: {
-                    model: "whisper-1"
-                  },
-                  turn_detection: {
-                    type: "server_vad",
-                    threshold: 0.5,
-                    prefix_padding_ms: 300,
-                    silence_duration_ms: 1000
-                  }
-                }
-              }));
-            }
           } catch (error) {
             console.error("Error handling message from Gemini:", error);
           }

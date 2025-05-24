@@ -5,14 +5,29 @@ import { Button } from "@/components/ui/button";
 import { Mic, Square, RefreshCw, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
+import VoiceVisualizer from "@/components/voiceAgent/VoiceVisualizer";
+import { createBlob, decode, decodeAudioData } from "@/utils/audioUtils";
 
 // Define AudioContext type to handle cross-browser compatibility
 type AudioContextType = typeof AudioContext;
 
 // Safe access to AudioContext constructor, with fallback for older browsers
-const AudioContextClass: AudioContextType = 
-  window.AudioContext || 
+const AudioContextClass: AudioContextType = window.AudioContext || 
   (window as any).webkitAudioContext;
+
+type GeminiMessage = {
+  serverContent?: {
+    modelTurn?: {
+      parts?: {
+        inlineData?: {
+          data: string;
+        }
+      }[]
+    },
+    interrupted?: boolean;
+  };
+};
 
 const AiVoiceAgent = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -34,10 +49,6 @@ const AiVoiceAgent = () => {
   // Audio playback references
   const nextStartTimeRef = useRef(0);
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
-  
-  // Canvas and visualization references
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationFrameRef = useRef<number | null>(null);
 
   // Initialize audio contexts and setup
   useEffect(() => {
@@ -59,9 +70,6 @@ const AiVoiceAgent = () => {
       
       // Initialize next start time
       nextStartTimeRef.current = outputAudioContextRef.current.currentTime;
-      
-      // Start visualization
-      startVisualization();
     } catch (err) {
       console.error("Error initializing audio contexts:", err);
       setError("Failed to initialize audio. Please ensure your browser supports Web Audio API.");
@@ -72,118 +80,10 @@ const AiVoiceAgent = () => {
       stopRecording();
       closeWebSocket();
       
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      
       inputAudioContextRef.current?.close();
       outputAudioContextRef.current?.close();
     };
   }, []);
-
-  // Utility function for creating a blob from PCM data
-  const createBlob = (pcmData: Float32Array) => {
-    const int16Array = new Int16Array(pcmData.length);
-    
-    // Convert Float32Array (-1.0 to 1.0) to Int16Array (-32768 to 32767)
-    for (let i = 0; i < pcmData.length; i++) {
-      const s = Math.max(-1, Math.min(1, pcmData[i]));
-      int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-    }
-    
-    // Create a new Blob with the Int16Array data
-    return new Blob([int16Array.buffer], { type: 'audio/pcm;rate=16000' });
-  };
-
-  // Utility function for decoding base64 audio data
-  const decode = (base64: string): Uint8Array => {
-    const binaryString = atob(base64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    return bytes;
-  };
-
-  // Utility function for decoding audio data
-  const decodeAudioData = async (
-    data: Uint8Array,
-    audioContext: AudioContext,
-    sampleRate: number,
-    numChannels: number
-  ): Promise<AudioBuffer> => {
-    return new Promise((resolve, reject) => {
-      audioContext.decodeAudioData(
-        data.buffer,
-        (buffer) => resolve(buffer),
-        (error) => reject(error)
-      );
-    });
-  };
-
-  const startVisualization = () => {
-    if (!canvasRef.current) return;
-    
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    // Make sure canvas is full screen
-    const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    
-    // Animation function
-    const animate = () => {
-      animationFrameRef.current = requestAnimationFrame(animate);
-      
-      if (!ctx) return;
-      
-      // Clear canvas
-      ctx.fillStyle = 'rgba(10, 10, 30, 0.2)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Get center of canvas
-      const centerX = canvas.width / 2;
-      const centerY = canvas.height / 2;
-      
-      // Base circle radius
-      const radius = Math.min(canvas.width, canvas.height) / 4;
-      
-      // Draw input audio visualization (outer ring)
-      ctx.beginPath();
-      ctx.strokeStyle = '#5AB0FF'; // Neon blue
-      ctx.lineWidth = 3;
-      
-      for (let i = 0; i < 32; i++) {
-        // Simplified visualization without audio analysis
-        const amplitude = isRecording ? (Math.sin(Date.now() / 200 + i * 0.2) + 1) * 0.5 : 0.1;
-        const angle = (i / 32) * Math.PI * 2;
-        const x = centerX + Math.cos(angle) * (radius + amplitude * 100);
-        const y = centerY + Math.sin(angle) * (radius + amplitude * 100);
-        
-        if (i === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-      }
-      ctx.closePath();
-      ctx.stroke();
-      
-      // Draw center circle
-      ctx.beginPath();
-      ctx.fillStyle = isRecording ? '#FF4444' : '#9145B6'; // Red when recording, purple when not
-      ctx.arc(centerX, centerY, 40, 0, Math.PI * 2);
-      ctx.fill();
-    };
-    
-    animate();
-  };
 
   // Initialize WebSocket connection to our Supabase Edge Function
   const initWebSocket = () => {
@@ -204,81 +104,57 @@ const AiVoiceAgent = () => {
       
       wsRef.current.onmessage = async (event) => {
         try {
-          const message = JSON.parse(event.data);
-          console.log("Received message:", message.type);
+          const message: GeminiMessage = JSON.parse(event.data);
+          console.log("Received message type:", message);
           
-          if (message.type === 'session.created') {
-            setStatus("Session created. Ready to start");
-            
-            // Send session configuration after session is created
-            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-              wsRef.current.send(JSON.stringify({
-                type: 'session.update',
-                session: {
-                  modalities: ["text", "audio"],
-                  instructions: "You are a helpful AI assistant having a voice conversation. Your knowledge cutoff is 2023.",
-                  voice: "alloy",
-                  input_audio_format: "pcm16",
-                  output_audio_format: "pcm16",
-                  input_audio_transcription: {
-                    model: "whisper-1"
-                  },
-                  turn_detection: {
-                    type: "server_vad",
-                    threshold: 0.5,
-                    prefix_padding_ms: 300,
-                    silence_duration_ms: 1000
-                  }
-                }
-              }));
-            }
-          } 
-          else if (message.type === 'response.audio.delta') {
+          // Handle audio data
+          const audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData;
+          if (audio && outputAudioContextRef.current) {
             // Process incoming audio data
-            if (message.delta && outputAudioContextRef.current) {
-              const audioData = decode(message.delta);
-              
-              // Get next start time
-              nextStartTimeRef.current = Math.max(
-                nextStartTimeRef.current,
-                outputAudioContextRef.current.currentTime
+            nextStartTimeRef.current = Math.max(
+              nextStartTimeRef.current,
+              outputAudioContextRef.current.currentTime
+            );
+            
+            try {
+              // Decode the audio data
+              const audioData = decode(audio.data);
+              const audioBuffer = await decodeAudioData(
+                audioData,
+                outputAudioContextRef.current,
+                24000,
+                1
               );
               
-              try {
-                // Decode the audio data
-                const audioBuffer = await decodeAudioData(
-                  audioData,
-                  outputAudioContextRef.current,
-                  24000,
-                  1
-                );
-                
-                // Create and connect source
-                const source = outputAudioContextRef.current.createBufferSource();
-                source.buffer = audioBuffer;
-                source.connect(outputNodeRef.current!);
-                
-                // Add to sources set and remove when ended
-                sourcesRef.current.add(source);
-                source.addEventListener('ended', () => {
-                  sourcesRef.current.delete(source);
-                });
-                
-                // Start audio playback
-                source.start(nextStartTimeRef.current);
-                nextStartTimeRef.current = nextStartTimeRef.current + audioBuffer.duration;
-              } catch (err) {
-                console.error("Error decoding audio:", err);
-              }
+              // Create and connect source
+              const source = outputAudioContextRef.current.createBufferSource();
+              source.buffer = audioBuffer;
+              source.connect(outputNodeRef.current!);
+              
+              // Add to sources set and remove when ended
+              sourcesRef.current.add(source);
+              source.addEventListener('ended', () => {
+                sourcesRef.current.delete(source);
+              });
+              
+              // Start audio playback
+              source.start(nextStartTimeRef.current);
+              nextStartTimeRef.current = nextStartTimeRef.current + audioBuffer.duration;
+            } catch (err) {
+              console.error("Error decoding audio:", err);
             }
           }
-          else if (message.type === 'response.audio.done') {
-            setStatus("AI response complete");
+          
+          // Handle interrupted state
+          const interrupted = message.serverContent?.interrupted;
+          if (interrupted) {
+            for (const source of sourcesRef.current.values()) {
+              source.stop();
+              sourcesRef.current.delete(source);
+            }
+            nextStartTimeRef.current = outputAudioContextRef.current?.currentTime || 0;
           }
-          else if (message.error) {
-            console.error("WebSocket error:", message.error);
-            setError(`Error: ${message.error}`);
-          }
+          
         } catch (err) {
           console.error("Error processing WebSocket message:", err);
         }
@@ -293,7 +169,7 @@ const AiVoiceAgent = () => {
         console.log("WebSocket connection closed");
         setStatus("Connection closed");
       };
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error initializing WebSocket:", err);
       setError(`Failed to connect: ${err.message}`);
     }
@@ -332,7 +208,13 @@ const AiVoiceAgent = () => {
       
       // Get microphone access
       mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({
-        audio: true,
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        },
         video: false,
       });
       
@@ -357,29 +239,13 @@ const AiVoiceAgent = () => {
         const inputBuffer = audioProcessingEvent.inputBuffer;
         const pcmData = inputBuffer.getChannelData(0);
         
-        // Send audio data to WebSocket
+        // Send audio data to WebSocket - for Gemini API
         try {
-          // Convert PCM data to blob and send to WebSocket
-          const blob = createBlob(pcmData);
-          
-          // Convert blob to base64
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            try {
-              const base64data = reader.result as string;
-              const base64Content = base64data.split(',')[1];
-              
-              wsRef.current?.send(JSON.stringify({
-                type: 'input_audio_buffer.append',
-                audio: base64Content
-              }));
-            } catch (err) {
-              console.error("Error sending audio data:", err);
-            }
-          };
-          reader.readAsDataURL(blob);
+          wsRef.current.send(JSON.stringify({
+            media: createBlob(pcmData)
+          }));
         } catch (err) {
-          console.error("Error processing audio data:", err);
+          console.error("Error sending audio data:", err);
         }
       };
       
@@ -418,14 +284,7 @@ const AiVoiceAgent = () => {
       mediaStreamRef.current = null;
     }
     
-    // Send message to complete the request
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'response.create'
-      }));
-      setStatus("Generating AI response...");
-    }
-    
+    setStatus("Recording stopped");
     toast.success("Recording stopped");
   };
 
@@ -464,10 +323,10 @@ const AiVoiceAgent = () => {
   // Render UI
   return (
     <div className="relative min-h-screen pt-16 pb-10 flex flex-col">
-      {/* Background canvas for visualizations */}
-      <canvas 
-        ref={canvasRef} 
-        className="absolute inset-0 w-full h-full z-0"
+      {/* 3D visualization */}
+      <VoiceVisualizer 
+        inputNode={inputNodeRef.current}
+        outputNode={outputNodeRef.current}
       />
       
       <div className="container mx-auto px-4 flex-1 flex flex-col items-center justify-center relative z-10">
