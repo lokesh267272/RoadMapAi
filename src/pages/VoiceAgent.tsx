@@ -26,9 +26,6 @@ const VoiceAgent = () => {
     setHasError(true);
   };
 
-  // Use the Supabase Edge Function proxy
-  const proxyUrl = "https://wxmkwxulnbcoidpfmicw.supabase.co/functions/v1/proxy-voiceagent/";
-
   return (
     <div className="min-h-screen pt-16 bg-background">
       <div className="container mx-auto px-4 py-6">
@@ -59,7 +56,7 @@ const VoiceAgent = () => {
 
         <div className={`relative ${isLoading ? 'hidden' : 'block'}`}>
           <iframe
-            src={proxyUrl}
+            src="https://delicate-bavarois-995263.netlify.app/"
             className="w-full h-[calc(100vh-200px)] border rounded-lg shadow-lg"
             title="Voice Agent"
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-top-navigation"
