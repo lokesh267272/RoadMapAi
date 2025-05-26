@@ -1,4 +1,10 @@
 [[redirects]]
-from = "/*"
-to = "/index.html/"
-status = 200
+  from = "/learningpath/*"
+  to = "https://live-audio-852937865697.us-west1.run.app/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
