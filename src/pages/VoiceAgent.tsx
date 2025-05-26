@@ -11,7 +11,7 @@ const VoiceAgent = () => {
     // Set a timeout to handle loading state
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 3000);
+    }, 5000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -40,7 +40,7 @@ const VoiceAgent = () => {
           <Alert className="mb-6">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              Unable to load the Voice Agent. Please try refreshing the page or check your internet connection.
+              Unable to load the Voice Agent. The external service may be temporarily unavailable. Please try refreshing the page.
             </AlertDescription>
           </Alert>
         )}
@@ -56,15 +56,22 @@ const VoiceAgent = () => {
 
         <div className={`relative ${isLoading ? 'hidden' : 'block'}`}>
           <iframe
-            src="/api/proxy/voiceagent"
+            src="https://delicate-bavarois-995263.netlify.app/"
             className="w-full h-[calc(100vh-200px)] border rounded-lg shadow-lg"
             title="Voice Agent"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-top-navigation"
             onLoad={handleIframeLoad}
             onError={handleIframeError}
             style={{ minHeight: '600px' }}
+            allow="microphone; camera; geolocation"
           />
         </div>
+
+        {!isLoading && !hasError && (
+          <div className="mt-4 text-sm text-muted-foreground text-center">
+            Voice Agent is now active. You can interact with the AI assistant above.
+          </div>
+        )}
       </div>
     </div>
   );
