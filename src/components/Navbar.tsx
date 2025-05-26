@@ -95,6 +95,14 @@ const Navbar = () => {
             <MessageSquare className="h-4 w-4 mr-1 inline" />
             AI Tutor
           </Link>
+          <Link 
+            to="/voiceagent" 
+            className={`text-foreground/80 hover:text-foreground transition-colors ${
+              location.pathname === "/voiceagent" ? "font-medium text-foreground" : ""
+            }`}
+          >
+            Voice Agent
+          </Link>
           {user ? (
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" asChild>
@@ -168,6 +176,13 @@ const Navbar = () => {
             >
               <MessageSquare className="h-4 w-4" />
               AI Tutor
+            </Link>
+            <Link
+              to="/voiceagent"
+              className="py-2 text-foreground/80 hover:text-foreground transition-colors"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Voice Agent
             </Link>
             {user ? (
               <>

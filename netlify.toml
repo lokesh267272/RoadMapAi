@@ -1,3 +1,16 @@
+
+[[redirects]]
+  from = "/api/proxy/voiceagent/*"
+  to = "https://delicate-bavarois-995263.netlify.app/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/proxy/voiceagent"
+  to = "https://delicate-bavarois-995263.netlify.app/"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/learningpath/*"
   to = "https://delicate-bavarois-995263.netlify.app/:splat"
@@ -8,4 +21,3 @@
   from = "/*"
   to = "/index.html"
   status = 200
-
