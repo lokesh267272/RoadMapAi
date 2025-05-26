@@ -38,7 +38,11 @@ const App = () => (
               <Route path="/" element={<Layout />}>
                 <Route index element={<Index />} />
                 <Route path="auth" element={<Auth />} />
-                <Route path="voice-agent" element={<VoiceAgent />} />
+                <Route path="voice-agent" element={
+                  <ProtectedRoute>
+                    <VoiceAgent />
+                  </ProtectedRoute>
+                } />
                 <Route path="dashboard" element={
                   <ProtectedRoute>
                     <Dashboard />
