@@ -1,10 +1,11 @@
 [[redirects]]
   from = "/learningpath/*"
-  to = "https://live-audio-852937865697.us-west1.run.app/:splat"
-  status = 200
+  to = "https://delicate-bavarois-995263.netlify.app/:splat"
+  status = 302
   force = true
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
