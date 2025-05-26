@@ -6,16 +6,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const VoiceAgent = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [iframeUrl, setIframeUrl] = useState('');
 
   useEffect(() => {
-    // Obfuscate the URL by constructing it dynamically
-    const baseUrl = 'https://';
-    const domain = 'delicate-bavarois-995263';
-    const tld = '.netlify.app/';
-    const fullUrl = baseUrl + domain + tld;
-    setIframeUrl(fullUrl);
-
     // Set a timeout to handle loading state
     const timer = setTimeout(() => {
       setIsLoading(false);
@@ -63,18 +55,16 @@ const VoiceAgent = () => {
         )}
 
         <div className={`relative ${isLoading ? 'hidden' : 'block'}`}>
-          {iframeUrl && (
-            <iframe
-              src={iframeUrl}
-              className="w-full h-[calc(100vh-200px)] border rounded-lg shadow-lg"
-              title="Voice Agent"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-top-navigation"
-              onLoad={handleIframeLoad}
-              onError={handleIframeError}
-              style={{ minHeight: '600px' }}
-              allow="microphone; camera; geolocation"
-            />
-          )}
+          <iframe
+            src="https://delicate-bavarois-995263.netlify.app/"
+            className="w-full h-[calc(100vh-200px)] border rounded-lg shadow-lg"
+            title="Voice Agent"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-top-navigation"
+            onLoad={handleIframeLoad}
+            onError={handleIframeError}
+            style={{ minHeight: '600px' }}
+            allow="microphone; camera; geolocation"
+          />
         </div>
 
         {!isLoading && !hasError && (
