@@ -1,6 +1,6 @@
-
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -42,8 +42,13 @@ const VoiceAgent = () => {
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-20">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold tracking-tight">Voice Agent</h1>
-          <p className="text-muted-foreground mt-2">
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-3xl font-bold tracking-tight">Voice Agent</h1>
+            <Badge variant="secondary" className="text-xs font-medium">
+              Beta
+            </Badge>
+          </div>
+          <p className="text-muted-foreground">
             Interact with our AI-powered voice agent for personalized learning assistance
           </p>
         </div>

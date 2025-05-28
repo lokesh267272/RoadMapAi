@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Brain, Calendar, Menu, Target, X, User, LogOut, MessageSquare, Mic } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -98,12 +98,15 @@ const Navbar = () => {
           </Link>
           <Link 
             to="/voice-agent" 
-            className={`text-foreground/80 hover:text-foreground transition-colors ${
+            className={`text-foreground/80 hover:text-foreground transition-colors flex items-center gap-1 ${
               location.pathname === "/voice-agent" ? "font-medium text-foreground" : ""
             }`}
           >
-            <Mic className="h-4 w-4 mr-1 inline" />
+            <Mic className="h-4 w-4" />
             Voice Agent
+            <Badge variant="secondary" className="text-xs ml-1">
+              Beta
+            </Badge>
           </Link>
           {user ? (
             <div className="flex items-center gap-2">
@@ -186,6 +189,9 @@ const Navbar = () => {
             >
               <Mic className="h-4 w-4" />
               Voice Agent
+              <Badge variant="secondary" className="text-xs">
+                Beta
+              </Badge>
             </Link>
             {user ? (
               <>
