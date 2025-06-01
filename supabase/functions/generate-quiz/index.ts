@@ -4,42 +4,42 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 
-// Updated CORS headers with specific allowed domains
-const corsHeaders = {
-  'Access-Control-Allow-Origin': Deno.env.get("ENVIRONMENT") === "production" 
-    ? "https://studytheskill.com"
-    : "https://roadmapai.netlify.app",
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Max-Age': '86400'
-};
-
-// Helper function to check if the origin is allowed
+// Helper function to get allowed origin
 function getAllowedOrigin(requestOrigin: string | null): string {
-  if (!requestOrigin) return corsHeaders["Access-Control-Allow-Origin"];
-  
   const allowedOrigins = [
     "https://studytheskill.com", 
     "https://preview--roadmapai.lovable.app", 
-    "https://roadmapai.netlify.app"
+    "https://roadmapai.netlify.app",
+    "http://localhost:3000",
+    "http://localhost:5173"
   ];
   
-  return allowedOrigins.includes(requestOrigin) 
-    ? requestOrigin 
-    : corsHeaders["Access-Control-Allow-Origin"];
+  if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+    return requestOrigin;
+  }
+  
+  // Default fallback
+  return "https://preview--roadmapai.lovable.app";
 }
 
 serve(async (req) => {
-  // Set dynamic origin based on request
+  // Get dynamic origin based on request
   const requestOrigin = req.headers.get("origin");
-  const dynamicCorsHeaders = {
-    ...corsHeaders,
-    "Access-Control-Allow-Origin": getAllowedOrigin(requestOrigin)
+  const allowedOrigin = getAllowedOrigin(requestOrigin);
+  
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Max-Age': '86400'
   };
 
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: dynamicCorsHeaders });
+    return new Response(null, { 
+      status: 200,
+      headers: corsHeaders 
+    });
   }
 
   try {
@@ -143,7 +143,7 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ quiz: quizData }), {
-      headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error("Error in generate-quiz function:", error);
@@ -151,7 +151,7 @@ serve(async (req) => {
       JSON.stringify({ error: error.message || "Failed to generate quiz" }),
       {
         status: 500,
-        headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
