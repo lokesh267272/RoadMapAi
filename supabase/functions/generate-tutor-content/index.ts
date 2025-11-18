@@ -5,8 +5,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // Updated CORS headers with specific allowed domains
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get("ENVIRONMENT") === "production" 
-    ? "https://studytheskill.com"
-    : "https://roadmapai.netlify.app",
+    ? "https://roadmapai.netlify.app"
+    : "http://localhost:8080",
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Max-Age': '86400'
@@ -19,9 +19,9 @@ function getAllowedOrigin(requestOrigin: string | null): string {
   if (!requestOrigin) return corsHeaders["Access-Control-Allow-Origin"];
   
   const allowedOrigins = [
-    "https://studytheskill.com", 
+    "https://roadmapai.netlify.app",
     "https://preview--roadmapai.lovable.app", 
-    "https://roadmapai.netlify.app"
+    "http://localhost:8080"
   ];
   
   return allowedOrigins.includes(requestOrigin) 
@@ -104,7 +104,7 @@ async function generateContentWithGemini(topicTitle: string): Promise<string> {
       The content should be educational, accurate, and engaging for someone learning this topic.
     `;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

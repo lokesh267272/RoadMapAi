@@ -7,11 +7,11 @@ const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 // Helper function to get allowed origin
 function getAllowedOrigin(requestOrigin: string | null): string {
   const allowedOrigins = [
-    "https://studytheskill.com", 
     "https://preview--roadmapai.lovable.app", 
     "https://roadmapai.netlify.app",
     "http://localhost:3000",
-    "http://localhost:5173"
+    "http://localhost:5173",
+    "http://localhost:8080"
   ];
   
   if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
@@ -19,7 +19,7 @@ function getAllowedOrigin(requestOrigin: string | null): string {
   }
   
   // Default fallback
-  return "https://preview--roadmapai.lovable.app";
+  return "https://roadmapai.netlify.app";
 }
 
 serve(async (req) => {
@@ -84,7 +84,7 @@ serve(async (req) => {
     `;
 
     console.log("Sending request to Gemini API...");
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent", {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
